@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebRTC + Go Streaming</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+</head>
+<body>
+    <h2>Classroom Streaming</h2>
+    
+    <button onclick="connectWS()">Connect WebSocket</button>
+    <button onclick="startWebRTC()">Start Stream</button>
+    <button onclick="stopStream()">Stop Stream</button>
+    <button onclick="toggleVideo()">Toggle Video</button>
+    <button onclick="toggleAudio()">Toggle Audio</button>
+
+    <p id="wsStatus">WebSocket: ❌</p>
+    <p id="rtcStatus">WebRTC: Not Started</p>
+
+    <h3>Local</h3>
+    <video id="localVideo" autoplay playsinline muted width="100%" style="max-width:320px;"></video>
+
+    <h3>Remote</h3>
+    <video id="remoteVideo" autoplay playsinline width="100%" style="max-width:320px;"></video>
+
+    <script>
+        let socket;
+        let pc;
+        let stream;
+        const localVideo = document.getElementById("localVideo");
+        const remoteVideo = document.getElementById("remoteVideo");
+
+        function connectWS() {
+            // Use localhost for WebSocket
+            const host = "localhost";
+            const port = window.location.port ? `:${window.location.port}` : '';
+            socket = new WebSocket(`ws://${host}${port}/ws/signal/`);
+            
+            socket.onopen = () => {
+                document.getElementById("wsStatus").innerText = "WebSocket: ✅";
+            };
+            
+            socket.onclose = () => {
+                document.getElementById("wsStatus").innerText = "WebSocket: ❌";
+            };
+        }
+
+        async function startWebRTC() {
+            document.getElementById("rtcStatus").innerText = "WebRTC: Starting...";
+            try {
+                // Get local media stream
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: {
+                        facingMode: "user",
+                        width: { min: 160, ideal: 320 },
+                        height: { min: 120, ideal: 240 }
+                    }, 
+                    audio: true
+                });
+                
+                localVideo.srcObject = stream;
+
+                // Create peer connection with TCP only
+                pc = new RTCPeerConnection({
+                    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+                    iceTransportPolicy: "relay" // Force TCP
+                });
+
+                // Log ICE candidates
+                pc.onicecandidate = event => {
+                    if (event.candidate) {
+                        console.log("ICE candidate:", event.candidate);
+                    }
+                };
+
+                // Add local tracks to connection
+                stream.getTracks().forEach(track => {
+                    pc.addTrack(track, stream);
+                });
+
+                // Handle remote stream
+                pc.ontrack = event => {
+                    console.log("Received remote track");
+                    if (!remoteVideo.srcObject) {
+                        remoteVideo.srcObject = new MediaStream();
+                    }
+                    event.streams[0].getTracks().forEach(track => {
+                        remoteVideo.srcObject.addTrack(track);
+                    });
+                };
+
+                // Update connection status
+                pc.oniceconnectionstatechange = () => {
+                    const state = pc.iceConnectionState;
+                    document.getElementById("rtcStatus").innerText = `WebRTC: ${state}`;
+                    
+                    if (state === "failed") {
+                        console.error("WebRTC connection failed");
+                        stopStream();
+                    }
+                };
+
+                // Create and send offer
+                const offer = await pc.createOffer({
+                    offerToReceiveVideo: true,
+                    offerToReceiveAudio: true
+                });
+                
+                await pc.setLocalDescription(offer);
+                
+                // Use localhost for Go server
+                const host = "localhost";
+                const goPort = "8080";
+                
+                // Send offer to Go server
+                const response = await fetch(`http://${host}:${goPort}/offer`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(pc.localDescription)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Receive and set answer
+                const answer = await response.json();
+                await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                
+            } catch (error) {
+                console.error("❌ WebRTC Error:", error);
+                document.getElementById("rtcStatus").innerText = "WebRTC: Failed ❌";
+                stopStream();
+                
+                // Show error alert
+                alert(`WebRTC Error: ${error.message}`);
+            }
+        }
+
+        function stopStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (pc) {
+                pc.close();
+                pc = null;
+            }
+            if (localVideo.srcObject) {
+                localVideo.srcObject.getTracks().forEach(track => track.stop());
+                localVideo.srcObject = null;
+            }
+            if (remoteVideo.srcObject) {
+                remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+                remoteVideo.srcObject = null;
+            }
+            document.getElementById("rtcStatus").innerText = "WebRTC: Stopped ❌";
+        }
+
+        function toggleVideo() {
+            if (stream) {
+                const videoTracks = stream.getVideoTracks();
+                if (videoTracks.length > 0) {
+                    const videoTrack = videoTracks[0];
+                    videoTrack.enabled = !videoTrack.enabled;
+                    alert("Video " + (videoTrack.enabled ? "On" : "Off"));
+                }
+            }
+        }
+
+        function toggleAudio() {
+            if (stream) {
+                const audioTracks = stream.getAudioTracks();
+                if (audioTracks.length > 0) {
+                    const audioTrack = audioTracks[0];
+                    audioTrack.enabled = !audioTrack.enabled;
+                    alert("Audio " + (audioTrack.enabled ? "On" : "Off"));
+                }
+            }
+        }
+    </script>
+</body>
+</html>

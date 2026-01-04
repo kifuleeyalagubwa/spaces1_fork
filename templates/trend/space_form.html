@@ -1,0 +1,83 @@
+<!-- templates/trends/space_form.html -->
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} - {% if institution %}{{ institution.name }}{% else %}Personal{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <ion-icon name="business-outline"></ion-icon>
+                        {{ title }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.space_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.description|as_crispy_field }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.meeting_link|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.access_code|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                {{ form.capacity|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.available_from|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.available_to|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {% if institution %}
+                        {{ form.supervisors|as_crispy_field }}
+                        {% endif %}
+                        
+                        {{ form.tags|as_crispy_field }}
+                        
+                        <!-- Space Type Descriptions -->
+                        <div class="alert alert-info mt-3">
+                            <h6>Space Type Descriptions:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Study Space:</strong> Collaborative learning environment for academic subjects, exam preparation, group projects, and homework help</li>
+                                <li><strong>Interview Space:</strong> Practice and prepare for interviews, mock interviews, career preparation, resume reviews, and job search strategies</li>
+                                <li><strong>Meeting Space:</strong> Collaborate and connect for group discussions, project planning, study group meetings, and academic conferences</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <ion-icon name="save-outline"></ion-icon>
+                                Save Space
+                            </button>
+                            <a href="{% url 'space_list' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

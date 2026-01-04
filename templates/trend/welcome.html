@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h2>Welcome to Academic Trends!</h2>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-success">
+                <strong>Registration successful!</strong> Welcome to our community.
+            </div>
+            
+            <p class="lead">
+                To get the most out of Academic Trends, we recommend completing your profile.
+            </p>
+            
+            <div class="row mt-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Complete Your Profile</h5>
+                            <p class="card-text">
+                                Add your education details, interests, and personal information to 
+                                help us recommend relevant academic trends.
+                            </p>
+                            <a href="{% url 'edit_profile' %}" class="btn btn-primary">
+                                Update Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Explore Trends</h5>
+                            <p class="card-text">
+                                Start exploring academic trends right away. You can always update 
+                                your profile later from your dashboard.
+                            </p>
+                            <a href="{% url 'dashboard' %}" class="btn btn-success">
+                                Go to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

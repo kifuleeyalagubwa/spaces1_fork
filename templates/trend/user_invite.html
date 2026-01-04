@@ -1,0 +1,54 @@
+<!-- templates/trends/user_invite.html -->
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Invite User - {{ institution.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <ion-icon name="person-add-outline"></ion-icon>
+                        Invite User to {{ institution.name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   placeholder="user@example.com" required>
+                            <div class="form-text">
+                                User will receive an invitation email to join this institution.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Role</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="">Select a role...</option>
+                                {% for value, label in roles %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <ion-icon name="send-outline"></ion-icon>
+                                Send Invitation
+                            </button>
+                            <a href="{% url 'user_management' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

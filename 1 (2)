@@ -1,0 +1,1339 @@
+# Institutional Registration & Management System Implementation
+
+I'll implement the institutional system step by step, starting with the enhanced models and registration process.
+
+## Step 1: Enhanced Institution Model
+
+Let's start by updating the `Institution` model in `trends/models.py`:
+
+```python
+# Add to trends/models.py
+class Institution(UUIDMixin, models.Model):
+    name = models.CharField(_('name'), max_length=200)
+    verified = models.BooleanField(_('verified'), default=False)
+    admin = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='administered_institutions'
+    )
+    description = models.TextField(_('description'), blank=True)
+    website = models.URLField(_('website'), blank=True)
+    curriculum = models.ForeignKey(
+        EducationalSystem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='institutions_using',
+        verbose_name=_('base curriculum')
+    )
+    custom_curriculum = models.BooleanField(
+        _('custom curriculum'),
+        default=False,
+        help_text=_('Check if creating a custom curriculum')
+    )
+    is_approved = models.BooleanField(_('approved'), default=False)
+    
+    # New fields for multi-tenancy
+    subdomain = models.CharField(_('subdomain'), max_length=50, unique=True, null=True, blank=True)
+    custom_domain = models.CharField(_('custom domain'), max_length=100, unique=True, null=True, blank=True)
+    is_active = models.BooleanField(_('active'), default=True)
+    storage_quota = models.PositiveBigIntegerField(_('storage quota (MB)'), default=1024)  # 1GB default
+    user_limit = models.PositiveIntegerField(_('user limit'), default=100)
+    expiry_date = models.DateField(_('expiry date'), null=True, blank=True)
+    
+    # Institution branding
+    logo = models.ImageField(upload_to='institution_logos/', null=True, blank=True)
+    primary_color = models.CharField(max_length=7, default='#8b0000')  # Maroon
+    secondary_color = models.CharField(max_length=7, default='#f0f2f5')  # Light gray
+    
+    # Settings
+    allow_user_registration = models.BooleanField(_('allow user registration'), default=True)
+    require_domain_email = models.BooleanField(_('require domain email'), default=False)
+    allowed_email_domains = models.CharField(_('allowed email domains'), max_length=500, blank=True)
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['subdomain'],
+                name='unique_subdomain',
+                condition=Q(subdomain__isnull=False)
+            ),
+            models.UniqueConstraint(
+                fields=['custom_domain'],
+                name='unique_custom_domain',
+                condition=Q(custom_domain__isnull=False)
+            )
+        ]
+    
+    def __str__(self):
+        return self.name
+    
+    @property
+    def uid(self):
+        return f"ins-{str(self.id)[:7]}"
+    
+    def clean(self):
+        # Validate that either subdomain or custom_domain is provided
+        if not self.subdomain and not self.custom_domain:
+            raise ValidationError("Either subdomain or custom domain must be provided")
+        
+        # Validate email domains format
+        if self.allowed_email_domains:
+            domains = [domain.strip() for domain in self.allowed_email_domains.split(',')]
+            for domain in domains:
+                if not re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', domain):
+                    raise ValidationError(f"Invalid domain format: {domain}")
+    
+    def save(self, *args, **kwargs):
+        # Generate a subdomain if not provided
+        if not self.subdomain and not self.custom_domain:
+            base_subdomain = re.sub(r'[^a-z0-9]', '', self.name.lower())[:20]
+            counter = 1
+            subdomain = base_subdomain
+            while Institution.objects.filter(subdomain=subdomain).exists():
+                subdomain = f"{base_subdomain}{counter}"
+                counter += 1
+            self.subdomain = subdomain
+            
+        super().save(*args, **kwargs)
+```
+
+## Step 2: Update User Roles Constants
+
+Update the `UserRole` class in `trends/constants.py`:
+
+```python
+# Update trends/constants.py
+class UserRole:
+    SETTER = 'setter'
+    PARTICIPANT = 'participant'
+    INSTITUTION = 'institution'
+    ADMIN = 'admin'
+    # New institutional roles
+    INSTITUTION_ADMIN = 'institution_admin'
+    INSTITUTION_TEACHER = 'institution_teacher'
+    INSTITUTION_STUDENT = 'institution_student'
+    
+    CHOICES = [
+        (SETTER, 'Setter'),
+        (PARTICIPANT, 'Participant'),
+        (INSTITUTION, 'Institution'),
+        (ADMIN, 'Admin'),
+        (INSTITUTION_ADMIN, 'Institution Admin'),
+        (INSTITUTION_TEACHER, 'Institution Teacher'),
+        (INSTITUTION_STUDENT, 'Institution Student'),
+    ]
+    
+    INSTITUTION_ROLES = [INSTITUTION_ADMIN, INSTITUTION_TEACHER, INSTITUTION_STUDENT]
+```
+
+## Step 3: Enhanced Profile Model
+
+Update the `Profile` model in `trends/models.py`:
+
+```python
+# Update Profile model in trends/models.py
+class Profile(UUIDMixin, models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=UserRole.CHOICES,
+        default=UserRole.PARTICIPANT
+    )
+    bio = models.TextField(_('bio'), blank=True)
+    profile_picture = models.ImageField(
+        upload_to='profile_pics/',
+        blank=True,
+        null=True
+    )
+    date_of_birth = models.DateField(null=True, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    country = CountryField(blank=True)
+    website = models.URLField(blank=True)
+    
+    # Institution association
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='members'
+    )
+    
+    # Institution-specific fields (for institutional accounts)
+    institution_name = models.CharField(max_length=200, blank=True)
+    institution_logo = models.ImageField(
+        upload_to='institution_logos/',
+        blank=True,
+        null=True
+    )
+    institution_description = models.TextField(blank=True)
+    
+    education_system = models.ForeignKey(
+        EducationalSystem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('education system')
+    )
+    education_level = models.ForeignKey(
+        EducationLevel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('education level')
+    )
+    program = models.ForeignKey(
+        'Program',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('degree program')
+    )
+    academic_year = models.ForeignKey(
+        'Year',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('academic year')
+    )
+    
+    def __str__(self):
+        return f"{self.user.username}'s Profile"
+    
+    @property
+    def uid(self):
+        return f"prf-{str(self.id)[:7]}"
+    
+    def clean(self):
+        # Validate that institutional users have an institution
+        if self.role in UserRole.INSTITUTION_ROLES and not self.institution:
+            raise ValidationError("Institutional roles require an institution association")
+    
+    def save(self, *args, **kwargs):
+        # For institutional admins, update the institution info
+        if self.role == UserRole.INSTITUTION_ADMIN and self.institution:
+            self.institution.name = self.institution_name
+            self.institution.logo = self.institution_logo
+            self.institution.description = self.institution_description
+            self.institution.save()
+            
+        super().save(*args, **kwargs)
+```
+
+## Step 4: Institution Registration Form
+
+Create a new form in `trends/forms.py`:
+
+```python
+# Add to trends/forms.py
+import re
+from django import forms
+from django.core.exceptions import ValidationError
+
+class InstitutionRegistrationForm(forms.ModelForm):
+    admin_first_name = forms.CharField(max_length=30, required=True)
+    admin_last_name = forms.CharField(max_length=30, required=True)
+    admin_email = forms.EmailField(required=True)
+    password = forms.CharField(widget=forms.PasswordInput, required=True)
+    password_confirm = forms.CharField(widget=forms.PasswordInput, required=True)
+    agree_to_terms = forms.BooleanField(required=True)
+    
+    class Meta:
+        model = Institution
+        fields = ['name', 'subdomain', 'website', 'description', 'curriculum', 'custom_curriculum']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'curriculum': forms.Select(attrs={'class': 'form-select'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        self.fields['curriculum'].queryset = EducationalSystem.objects.filter(is_approved=True)
+        
+        # Conditionally require curriculum based on custom_curriculum
+        if 'custom_curriculum' in self.data:
+            if not self.data.get('custom_curriculum'):
+                self.fields['curriculum'].required = True
+        elif self.instance.pk and not self.instance.custom_curriculum:
+            self.fields['curriculum'].required = True
+    
+    def clean_subdomain(self):
+        subdomain = self.cleaned_data.get('subdomain', '').lower()
+        if not subdomain:
+            return subdomain
+            
+        if not re.match(r'^[a-z0-9-]+$', subdomain):
+            raise ValidationError("Subdomain can only contain lowercase letters, numbers, and hyphens.")
+        
+        if Institution.objects.filter(subdomain=subdomain).exists():
+            raise ValidationError("This subdomain is already taken.")
+            
+        return subdomain
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_confirm = cleaned_data.get('password_confirm')
+        
+        if password and password_confirm and password != password_confirm:
+            self.add_error('password_confirm', "Passwords do not match")
+            
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Create admin user if not already exists
+        admin_email = self.cleaned_data['admin_email']
+        admin_user, created = User.objects.get_or_create(
+            email=admin_email,
+            defaults={
+                'username': admin_email,
+                'first_name': self.cleaned_data['admin_first_name'],
+                'last_name': self.cleaned_data['admin_last_name'],
+                'is_verified': True  # Institution admins are auto-verified
+            }
+        )
+        
+        if created:
+            admin_user.set_password(self.cleaned_data['password'])
+            admin_user.save()
+        
+        instance.admin = admin_user
+        
+        if commit:
+            instance.save()
+            
+            # Create or update admin profile
+            profile, created = Profile.objects.get_or_create(user=admin_user)
+            profile.role = UserRole.INSTITUTION_ADMIN
+            profile.institution = instance
+            profile.save()
+            
+        return instance
+```
+
+## Step 5: Institution Registration View
+
+Create a new view in `trends/views.py`:
+
+```python
+# Add to trends/views.py
+from django.core.mail import send_mail
+from django.conf import settings
+from .forms import InstitutionRegistrationForm
+
+def register_institution(request):
+    if request.method == 'POST':
+        form = InstitutionRegistrationForm(request.POST, request.FILES)
+        if form.is_valid():
+            institution = form.save()
+            
+            # Send welcome email
+            send_mail(
+                'Your Institution Registration is Under Review',
+                f'Thank you for registering {institution.name}. Your application is under review and you will be notified once it is approved.',
+                settings.DEFAULT_FROM_EMAIL,
+                [institution.admin.email],
+                fail_silently=False,
+            )
+            
+            # Notify site admins
+            admin_emails = User.objects.filter(
+                is_superuser=True
+            ).values_list('email', flat=True)
+            
+            if admin_emails:
+                send_mail(
+                    'New Institution Registration',
+                    f'A new institution "{institution.name}" has registered and is awaiting approval.',
+                    settings.DEFAULT_FROM_EMAIL,
+                    admin_emails,
+                    fail_silently=False,
+                )
+            
+            messages.success(request, 'Your institution registration has been submitted for review!')
+            return redirect('dashboard')
+    else:
+        form = InstitutionRegistrationForm()
+    
+    return render(request, 'trends/institution_registration.html', {'form': form})
+```
+
+## Step 6: Institution Registration Template
+
+Create a new template at `templates/trends/institution_registration.html`:
+
+```html
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Register Institution - Uganda eLearning{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <ion-icon name="business-outline"></ion-icon>
+                        Register Your Institution
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <h4 class="mb-3">Institution Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.subdomain|as_crispy_field }}
+                                <small class="form-text text-muted">
+                                    Your institution will be accessible at: https://{{ form.subdomain.value }}.uganda-elearning.org
+                                </small>
+                            </div>
+                        </div>
+                        
+                        {{ form.website|as_crispy_field }}
+                        {{ form.description|as_crispy_field }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.curriculum|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.custom_curriculum|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <h4 class="mb-3">Administrator Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.admin_first_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.admin_last_name|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.admin_email|as_crispy_field }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.password|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.password_confirm|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="form-check mb-4">
+                            {{ form.agree_to_terms }}
+                            <label class="form-check-label" for="{{ form.agree_to_terms.id_for_label }}">
+                                I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <ion-icon name="business-outline"></ion-icon>
+                            Register Institution
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle curriculum field based on custom_curriculum checkbox
+        const customCurriculumCheckbox = document.getElementById('id_custom_curriculum');
+        const curriculumField = document.getElementById('div_id_curriculum');
+        
+        function toggleCurriculumField() {
+            if (customCurriculumCheckbox.checked) {
+                curriculumField.style.display = 'none';
+            } else {
+                curriculumField.style.display = 'block';
+            }
+        }
+        
+        customCurriculumCheckbox.addEventListener('change', toggleCurriculumField);
+        toggleCurriculumField(); // Initial state
+    });
+</script>
+{% endblock %}
+```
+
+## Step 7: Update URLs
+
+Add the registration URL to `trends/urls.py`:
+
+```python
+# Update trends/urls.py
+urlpatterns = [
+    # ... existing URLs ...
+    path('institution/register/', views.register_institution, name='register_institution'),
+    # ... other URLs ...
+]
+```
+
+## Step 8: Institution Middleware
+
+Create a new middleware file `trends/middleware.py`:
+
+```python
+# Create trends/middleware.py
+import threading
+from django.utils.deprecation import MiddlewareMixin
+from .models import Institution
+
+# Thread-local storage for institution
+_thread_locals = threading.local()
+
+def get_current_institution():
+    return getattr(_thread_locals, 'institution', None)
+
+def set_current_institution(institution):
+    _thread_locals.institution = institution
+
+def clear_current_institution():
+    if hasattr(_thread_locals, 'institution'):
+        delattr(_thread_locals, 'institution')
+
+class InstitutionMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        # Clear any previous institution
+        clear_current_institution()
+        
+        # Determine institution from domain/subdomain
+        host = request.get_host()
+        institution = None
+        
+        # Check for custom domain
+        try:
+            institution = Institution.objects.get(
+                custom_domain=host,
+                is_active=True,
+                is_approved=True
+            )
+        except Institution.DoesNotExist:
+            # Check for subdomain
+            subdomain = host.split('.')[0]
+            if subdomain and subdomain != 'www':
+                try:
+                    institution = Institution.objects.get(
+                        subdomain=subdomain,
+                        is_active=True,
+                        is_approved=True
+                    )
+                except Institution.DoesNotExist:
+                    pass
+        
+        # Set institution in thread locals
+        if institution:
+            set_current_institution(institution)
+            request.institution = institution
+        
+        return None
+    
+    def process_response(self, request, response):
+        # Clean up after request
+        clear_current_institution()
+        return response
+```
+
+## Step 9: Institution-Scoped Model Manager
+
+Create a custom model manager in `trends/models.py`:
+
+```python
+# Add to trends/models.py
+class InstitutionScopedManager(models.Manager):
+    def get_queryset(self):
+        # For superusers or when institution scope is disabled, return all objects
+        if hasattr(self.model, '_institution_scope_disabled'):
+            return super().get_queryset()
+            
+        # For regular users, scope to their institution
+        from .middleware import get_current_institution
+        institution = get_current_institution()
+        
+        if institution:
+            return super().get_queryset().filter(institution=institution)
+        
+        # If no institution in context, return empty queryset for safety
+        return super().get_queryset().none()
+
+# Abstract model for institution-scoped models
+class InstitutionScopedModel(models.Model):
+    institution = models.ForeignKey(
+        Institution, 
+        on_delete=models.CASCADE,
+        related_name='%(class)s_objects'
+    )
+    
+    objects = InstitutionScopedManager()
+    
+    class Meta:
+        abstract = True
+    
+    def save(self, *args, **kwargs):
+        # Auto-set institution if not provided
+        from .middleware import get_current_institution
+        if not self.institution_id:
+            institution = get_current_institution()
+            if institution:
+                self.institution = institution
+        
+        super().save(*args, **kwargs)
+```
+
+## Step 10: Update Settings
+
+Update `classroom/settings.py` to include the middleware:
+
+```python
+# Update MIDDLEWARE in settings.py
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'classroom.middleware.NoCacheMiddleware',
+    'trends.middleware.InstitutionMiddleware',  # Add this line
+]
+```
+
+This completes the first phase of institutional registration and management. The next steps would be to:
+
+1. Create the institutional dashboard
+2. Implement user management within institutions
+3. Create institution-scoped versions of key models (Trends, Exams, etc.)
+4. Implement the subdomain routing system
+
+Would you like me to continue with any of these next steps?
+
+
+#2
+# Institution Registration Implementation
+
+Based on our analysis, I'll implement a comprehensive institution registration system that allows educational institutions to register, get approved, and manage their own isolated spaces within your platform.
+
+## Step 1: Enhanced Institution Model
+
+First, let's update the Institution model with the necessary fields for multi-tenancy:
+
+```python
+# In trends/models.py
+import re
+from django.db import models
+from django.core.exceptions import ValidationError
+from django.db.models import Q
+
+class Institution(UUIDMixin, models.Model):
+    name = models.CharField(_('name'), max_length=200)
+    verified = models.BooleanField(_('verified'), default=False)
+    admin = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='administered_institutions'
+    )
+    description = models.TextField(_('description'), blank=True)
+    website = models.URLField(_('website'), blank=True)
+    curriculum = models.ForeignKey(
+        EducationalSystem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='institutions_using',
+        verbose_name=_('base curriculum')
+    )
+    custom_curriculum = models.BooleanField(
+        _('custom curriculum'),
+        default=False,
+        help_text=_('Check if creating a custom curriculum')
+    )
+    is_approved = models.BooleanField(_('approved'), default=False)
+    
+    # New fields for multi-tenancy
+    subdomain = models.CharField(_('subdomain'), max_length=50, unique=True, null=True, blank=True)
+    custom_domain = models.CharField(_('custom domain'), max_length=100, unique=True, null=True, blank=True)
+    is_active = models.BooleanField(_('active'), default=True)
+    storage_quota = models.PositiveBigIntegerField(_('storage quota (MB)'), default=1024)  # 1GB default
+    user_limit = models.PositiveIntegerField(_('user limit'), default=100)
+    expiry_date = models.DateField(_('expiry date'), null=True, blank=True)
+    
+    # Institution branding
+    logo = models.ImageField(upload_to='institution_logos/', null=True, blank=True)
+    primary_color = models.CharField(max_length=7, default='#8b0000')  # Maroon
+    secondary_color = models.CharField(max_length=7, default='#f0f2f5')  # Light gray
+    
+    # Settings
+    allow_user_registration = models.BooleanField(_('allow user registration'), default=True)
+    require_domain_email = models.BooleanField(_('require domain email'), default=False)
+    allowed_email_domains = models.CharField(_('allowed email domains'), max_length=500, blank=True)
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['subdomain'],
+                name='unique_subdomain',
+                condition=Q(subdomain__isnull=False)
+            ),
+            models.UniqueConstraint(
+                fields=['custom_domain'],
+                name='unique_custom_domain',
+                condition=Q(custom_domain__isnull=False)
+            )
+        ]
+    
+    def __str__(self):
+        return self.name
+    
+    @property
+    def uid(self):
+        return f"ins-{str(self.id)[:7]}"
+    
+    def clean(self):
+        # Validate that either subdomain or custom_domain is provided
+        if not self.subdomain and not self.custom_domain:
+            raise ValidationError("Either subdomain or custom domain must be provided")
+        
+        # Validate email domains format
+        if self.allowed_email_domains:
+            domains = [domain.strip() for domain in self.allowed_email_domains.split(',')]
+            for domain in domains:
+                if not re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', domain):
+                    raise ValidationError(f"Invalid domain format: {domain}")
+    
+    def save(self, *args, **kwargs):
+        # Generate a subdomain if not provided
+        if not self.subdomain and not self.custom_domain:
+            base_subdomain = re.sub(r'[^a-z0-9]', '', self.name.lower())[:20]
+            counter = 1
+            subdomain = base_subdomain
+            while Institution.objects.filter(subdomain=subdomain).exists():
+                subdomain = f"{base_subdomain}{counter}"
+                counter += 1
+            self.subdomain = subdomain
+            
+        super().save(*args, **kwargs)
+```
+
+## Step 2: Update User Roles
+
+Let's add institutional roles to the constants:
+
+```python
+# In trends/constants.py
+# User Roles
+class UserRole:
+    SETTER = 'setter'
+    PARTICIPANT = 'participant'
+    INSTITUTION = 'institution'
+    ADMIN = 'admin'
+    # New institutional roles
+    INSTITUTION_ADMIN = 'institution_admin'
+    INSTITUTION_TEACHER = 'institution_teacher'
+    INSTITUTION_STUDENT = 'institution_student'
+    
+    CHOICES = [
+        (SETTER, 'Setter'),
+        (PARTICIPANT, 'Participant'),
+        (INSTITUTION, 'Institution'),
+        (ADMIN, 'Admin'),
+        (INSTITUTION_ADMIN, 'Institution Admin'),
+        (INSTITUTION_TEACHER, 'Institution Teacher'),
+        (INSTITUTION_STUDENT, 'Institution Student'),
+    ]
+    
+    INSTITUTION_ROLES = [INSTITUTION_ADMIN, INSTITUTION_TEACHER, INSTITUTION_STUDENT]
+```
+
+## Step 3: Enhanced Profile Model
+
+Update the Profile model to include institution association:
+
+```python
+# In trends/models.py
+class Profile(UUIDMixin, models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=UserRole.CHOICES,
+        default=UserRole.PARTICIPANT
+    )
+    bio = models.TextField(_('bio'), blank=True)
+    profile_picture = models.ImageField(
+        upload_to='profile_pics/',
+        blank=True,
+        null=True
+    )
+    date_of_birth = models.DateField(null=True, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    country = CountryField(blank=True)
+    website = models.URLField(blank=True)
+    
+    # Institution association
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='members'
+    )
+    
+    # Institution-specific fields (for institutional accounts)
+    institution_name = models.CharField(max_length=200, blank=True)
+    institution_logo = models.ImageField(
+        upload_to='institution_logos/',
+        blank=True,
+        null=True
+    )
+    institution_description = models.TextField(blank=True)
+    
+    education_system = models.ForeignKey(
+        EducationalSystem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('education system')
+    )
+    education_level = models.ForeignKey(
+        EducationLevel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('education level')
+    )
+    program = models.ForeignKey(
+        'Program',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('degree program')
+    )
+    academic_year = models.ForeignKey(
+        'Year',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_('academic year')
+    )
+    
+    def __str__(self):
+        return f"{self.user.username}'s Profile"
+    
+    @property
+    def uid(self):
+        return f"prf-{str(self.id)[:7]}"
+    
+    def clean(self):
+        # Validate that institutional users have an institution
+        if self.role in UserRole.INSTITUTION_ROLES and not self.institution:
+            raise ValidationError("Institutional roles require an institution association")
+    
+    def save(self, *args, **kwargs):
+        # For institutional admins, update the institution info
+        if self.role == UserRole.INSTITUTION_ADMIN and self.institution:
+            self.institution.name = self.institution_name
+            self.institution.logo = self.institution_logo
+            self.institution.description = self.institution_description
+            self.institution.save()
+            
+        super().save(*args, **kwargs)
+```
+
+## Step 4: Institution Registration Form
+
+Create a comprehensive registration form:
+
+```python
+# In trends/forms.py
+import re
+from django import forms
+from django.core.exceptions import ValidationError
+
+class InstitutionRegistrationForm(forms.ModelForm):
+    admin_first_name = forms.CharField(max_length=30, required=True)
+    admin_last_name = forms.CharField(max_length=30, required=True)
+    admin_email = forms.EmailField(required=True)
+    password = forms.CharField(widget=forms.PasswordInput, required=True)
+    password_confirm = forms.CharField(widget=forms.PasswordInput, required=True)
+    agree_to_terms = forms.BooleanField(required=True)
+    
+    class Meta:
+        model = Institution
+        fields = ['name', 'subdomain', 'website', 'description', 'curriculum', 'custom_curriculum']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'curriculum': forms.Select(attrs={'class': 'form-select'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        self.fields['curriculum'].queryset = EducationalSystem.objects.filter(is_approved=True)
+        
+        # Conditionally require curriculum based on custom_curriculum
+        if 'custom_curriculum' in self.data:
+            if not self.data.get('custom_curriculum'):
+                self.fields['curriculum'].required = True
+        elif self.instance.pk and not self.instance.custom_curriculum:
+            self.fields['curriculum'].required = True
+    
+    def clean_subdomain(self):
+        subdomain = self.cleaned_data.get('subdomain', '').lower()
+        if not subdomain:
+            return subdomain
+            
+        if not re.match(r'^[a-z0-9-]+$', subdomain):
+            raise ValidationError("Subdomain can only contain lowercase letters, numbers, and hyphens.")
+        
+        if Institution.objects.filter(subdomain=subdomain).exists():
+            raise ValidationError("This subdomain is already taken.")
+            
+        return subdomain
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_confirm = cleaned_data.get('password_confirm')
+        
+        if password and password_confirm and password != password_confirm:
+            self.add_error('password_confirm', "Passwords do not match")
+            
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Create admin user if not already exists
+        admin_email = self.cleaned_data['admin_email']
+        admin_user, created = User.objects.get_or_create(
+            email=admin_email,
+            defaults={
+                'username': admin_email,
+                'first_name': self.cleaned_data['admin_first_name'],
+                'last_name': self.cleaned_data['admin_last_name'],
+                'is_verified': True  # Institution admins are auto-verified
+            }
+        )
+        
+        if created:
+            admin_user.set_password(self.cleaned_data['password'])
+            admin_user.save()
+        
+        instance.admin = admin_user
+        
+        if commit:
+            instance.save()
+            
+            # Create or update admin profile
+            profile, created = Profile.objects.get_or_create(user=admin_user)
+            profile.role = UserRole.INSTITUTION_ADMIN
+            profile.institution = instance
+            profile.save()
+            
+        return instance
+```
+
+## Step 5: Institution Registration View
+
+Create the view to handle institution registration:
+
+```python
+# In trends/views.py
+from django.core.mail import send_mail
+from django.conf import settings
+from .forms import InstitutionRegistrationForm
+
+def register_institution(request):
+    if request.method == 'POST':
+        form = InstitutionRegistrationForm(request.POST, request.FILES)
+        if form.is_valid():
+            institution = form.save()
+            
+            # Send welcome email
+            send_mail(
+                'Your Institution Registration is Under Review',
+                f'Thank you for registering {institution.name}. Your application is under review and you will be notified once it is approved.',
+                settings.DEFAULT_FROM_EMAIL,
+                [institution.admin.email],
+                fail_silently=False,
+            )
+            
+            # Notify site admins
+            admin_emails = User.objects.filter(
+                is_superuser=True
+            ).values_list('email', flat=True)
+            
+            if admin_emails:
+                send_mail(
+                    'New Institution Registration',
+                    f'A new institution "{institution.name}" has registered and is awaiting approval.',
+                    settings.DEFAULT_FROM_EMAIL,
+                    admin_emails,
+                    fail_silently=False,
+                )
+            
+            messages.success(request, 'Your institution registration has been submitted for review!')
+            return redirect('dashboard')
+    else:
+        form = InstitutionRegistrationForm()
+    
+    return render(request, 'trends/institution_registration.html', {'form': form})
+```
+
+## Step 6: Registration Template
+
+Create a template for the registration form:
+
+```html
+<!-- templates/trends/institution_registration.html -->
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Register Institution - Uganda eLearning{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <ion-icon name="business-outline"></ion-icon>
+                        Register Your Institution
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <h4 class="mb-3">Institution Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.subdomain|as_crispy_field }}
+                                <small class="form-text text-muted">
+                                    Your institution will be accessible at: https://{{ form.subdomain.value }}.uganda-elearning.org
+                                </small>
+                            </div>
+                        </div>
+                        
+                        {{ form.website|as_crispy_field }}
+                        {{ form.description|as_crispy_field }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.curriculum|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.custom_curriculum|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <h4 class="mb-3">Administrator Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.admin_first_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.admin_last_name|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.admin_email|as_crispy_field }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.password|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.password_confirm|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="form-check mb-4">
+                            {{ form.agree_to_terms }}
+                            <label class="form-check-label" for="{{ form.agree_to_terms.id_for_label }}">
+                                I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <ion-icon name="business-outline"></ion-icon>
+                            Register Institution
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle curriculum field based on custom_curriculum checkbox
+        const customCurriculumCheckbox = document.getElementById('id_custom_curriculum');
+        const curriculumField = document.getElementById('div_id_curriculum');
+        
+        function toggleCurriculumField() {
+            if (customCurriculumCheckbox.checked) {
+                curriculumField.style.display = 'none';
+            } else {
+                curriculumField.style.display = 'block';
+            }
+        }
+        
+        customCurriculumCheckbox.addEventListener('change', toggleCurriculumField);
+        toggleCurriculumField(); // Initial state
+    });
+</script>
+{% endblock %}
+```
+
+## Step 7: Update URLs
+
+Add the registration URL to your URL patterns:
+
+```python
+# In trends/urls.py
+urlpatterns = [
+    # ... existing URLs ...
+    path('institution/register/', views.register_institution, name='register_institution'),
+    # ... other URLs ...
+]
+```
+
+## Step 8: Institution Middleware
+
+Create middleware to identify institutions from subdomains:
+
+```python
+# Create trends/middleware.py
+import threading
+from django.utils.deprecation import MiddlewareMixin
+from .models import Institution
+
+# Thread-local storage for institution
+_thread_locals = threading.local()
+
+def get_current_institution():
+    return getattr(_thread_locals, 'institution', None)
+
+def set_current_institution(institution):
+    _thread_locals.institution = institution
+
+def clear_current_institution():
+    if hasattr(_thread_locals, 'institution'):
+        delattr(_thread_locals, 'institution')
+
+class InstitutionMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        # Clear any previous institution
+        clear_current_institution()
+        
+        # Determine institution from domain/subdomain
+        host = request.get_host()
+        institution = None
+        
+        # Check for custom domain
+        try:
+            institution = Institution.objects.get(
+                custom_domain=host,
+                is_active=True,
+                is_approved=True
+            )
+        except Institution.DoesNotExist:
+            # Check for subdomain
+            subdomain = host.split('.')[0]
+            if subdomain and subdomain != 'www':
+                try:
+                    institution = Institution.objects.get(
+                        subdomain=subdomain,
+                        is_active=True,
+                        is_approved=True
+                    )
+                except Institution.DoesNotExist:
+                    pass
+        
+        # Set institution in thread locals
+        if institution:
+            set_current_institution(institution)
+            request.institution = institution
+        
+        return None
+    
+    def process_response(self, request, response):
+        # Clean up after request
+        clear_current_institution()
+        return response
+```
+
+## Step 9: Institution-Scoped Model Manager
+
+Create a manager for institution-scoped data:
+
+```python
+# In trends/models.py
+class InstitutionScopedManager(models.Manager):
+    def get_queryset(self):
+        # For superusers or when institution scope is disabled, return all objects
+        if hasattr(self.model, '_institution_scope_disabled'):
+            return super().get_queryset()
+            
+        # For regular users, scope to their institution
+        from .middleware import get_current_institution
+        institution = get_current_institution()
+        
+        if institution:
+            return super().get_queryset().filter(institution=institution)
+        
+        # If no institution in context, return empty queryset for safety
+        return super().get_queryset().none()
+
+# Abstract model for institution-scoped models
+class InstitutionScopedModel(models.Model):
+    institution = models.ForeignKey(
+        Institution, 
+        on_delete=models.CASCADE,
+        related_name='%(class)s_objects'
+    )
+    
+    objects = InstitutionScopedManager()
+    
+    class Meta:
+        abstract = True
+    
+    def save(self, *args, **kwargs):
+        # Auto-set institution if not provided
+        from .middleware import get_current_institution
+        if not self.institution_id:
+            institution = get_current_institution()
+            if institution:
+                self.institution = institution
+        
+        super().save(*args, **kwargs)
+```
+
+## Step 10: Update Settings
+
+Add the middleware to your settings:
+
+```python
+# In classroom/settings.py
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'classroom.middleware.NoCacheMiddleware',
+    'trends.middleware.InstitutionMiddleware',  # Add this line
+]
+```
+
+## Step 11: Admin Approval Interface
+
+Enhance the admin interface for institution approval:
+
+```python
+# In trends/admin.py
+@admin.register(Institution)
+class InstitutionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'subdomain', 'admin', 'verified', 'is_approved', 'is_active')
+    list_editable = ('verified', 'is_approved', 'is_active')
+    list_filter = ('verified', 'is_approved', 'is_active')
+    search_fields = ('name', 'admin__username', 'subdomain')
+    actions = [approve_items]
+    raw_id_fields = ['admin']
+    
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'admin', 'verified', 'is_approved', 'is_active')
+        }),
+        ('Domain Settings', {
+            'fields': ('subdomain', 'custom_domain'),
+        }),
+        ('Institution Settings', {
+            'fields': ('description', 'website', 'logo', 'primary_color', 'secondary_color'),
+        }),
+        ('Access Control', {
+            'fields': ('allow_user_registration', 'require_domain_email', 'allowed_email_domains'),
+        }),
+        ('Limits', {
+            'fields': ('storage_quota', 'user_limit', 'expiry_date'),
+        }),
+        ('Curriculum', {
+            'fields': ('curriculum', 'custom_curriculum'),
+        }),
+    )
+    
+    def approve_institutions(self, request, queryset):
+        updated = queryset.update(is_approved=True, is_active=True)
+        # Send approval emails
+        for institution in queryset:
+            send_mail(
+                'Your Institution Has Been Approved',
+                f'Your institution "{institution.name}" has been approved and is now active.',
+                settings.DEFAULT_FROM_EMAIL,
+                [institution.admin.email],
+                fail_silently=False,
+            )
+        self.message_user(request, f"{updated} institutions approved successfully!")
+    
+    approve_institutions.short_description = "Approve selected institutions"
+```
+
+## How the Registration Process Works
+
+1. **Institution Registration**: An institution admin fills out the registration form with institution details and admin credentials.
+
+2. **Admin Review**: The institution is created but marked as unapproved. Site admins are notified and can review the application.
+
+3. **Approval**: Site admins review and approve the institution, which activates it and notifies the institution admin.
+
+4. **Domain Setup**: The institution can now be accessed via its subdomain (e.g., `schoolname.uganda-elearning.org`).
+
+5. **User Management**: The institution admin can now add users, create institutional content, and manage settings.
+
+This implementation provides a secure, multi-tenant architecture where each institution has its own isolated space while sharing the same database and codebase, making it easier to maintain while ensuring data isolation.

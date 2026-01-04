@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if object %}Edit Exam Set{% else %}Create Exam Set{% endif %} - Uganda eLearning
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">
+        <ion-icon name="library-outline"></ion-icon>
+        {% if object %}Edit Exam Set{% else %}Create New Exam Set{% endif %}
+    </h2>
+    
+    <!-- Form error display -->
+    {% if form.errors %}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+        <strong class="font-bold">Form Errors:</strong>
+        <ul class="list-disc pl-5 mt-2">
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                    <li>{{ field|title }}: {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <form method="post" id="exam-set-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="form-group">
+                <label for="{{ form.title.id_for_label }}">Title *</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                    <div class="text-red-500 text-sm mt-1">{{ form.title.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.subject.id_for_label }}">Subject *</label>
+                {{ form.subject }}
+                {% if form.subject.errors %}
+                    <div class="text-red-500 text-sm mt-1">{{ form.subject.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">Description *</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-red-500 text-sm mt-1">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.topic.id_for_label }}">Topic (Optional)</label>
+                {{ form.topic }}
+                {% if form.topic.errors %}
+                    <div class="text-red-500 text-sm mt-1">{{ form.topic.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.set_type.id_for_label }}">Exam Type *</label>
+                {{ form.set_type }}
+                {% if form.set_type.errors %}
+                    <div class="text-red-500 text-sm mt-1">{{ form.set_type.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.credits_required.id_for_label }}">Credits Required</label>
+                {{ form.credits_required }}
+                {% if form.credits_required.errors %}
+                    <div class="text-red-500 text-sm mt-1">{{ form.credits_required.errors.0 }}</div>
+                {% endif %}
+                <p class="text-sm text-gray-500 mt-1">Only for Premium exams</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.duration_minutes.id_for_label }}">Duration (Minutes) *</label>
+                {{ form.duration_minutes }}
+                {% if form.duration_minutes.errors %}
+                    <div class="text-red-500 text-sm mt-1">{{ form.duration_minutes.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="flex items-center mb-6">
+            {{ form.is_active }}
+            <label for="{{ form.is_active.id_for_label }}" class="ml-2">Active</label>
+            {% if form.is_active.errors %}
+                <div class="text-red-500 text-sm mt-1">{{ form.is_active.errors.0 }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="flex items-center mb-6">
+            {{ form.reward_eligible }}
+            <label for="{{ form.reward_eligible.id_for_label }}" class="ml-2">Reward Eligible</label>
+            <p class="text-sm text-gray-500 ml-3">(Only for MCQ-only sets)</p>
+            {% if form.reward_eligible.errors %}
+                <div class="text-red-500 text-sm mt-1">{{ form.reward_eligible.errors.0 }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="flex justify-between mt-8">
+            <a href="{% if object %}{% url 'exams:exam_set_detail' pk=object.pk %}{% else %}{% url 'exams:exam_set_list' %}{% endif %}" 
+               class="btn btn-outline">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                {% if object %}Update{% else %}Create{% endif %} Exam Set
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('exam-set-form');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        // Enable/disable credits field based on exam type
+        const examTypeSelect = document.getElementById('{{ form.set_type.id_for_label }}');
+        const creditsField = document.getElementById('{{ form.credits_required.id_for_label }}');
+        
+        function updateCreditsField() {
+            if (examTypeSelect.value === 'PREMIUM') {
+                creditsField.disabled = false;
+                creditsField.parentElement.style.opacity = '1';
+            } else {
+                creditsField.disabled = true;
+                creditsField.parentElement.style.opacity = '0.7';
+            }
+        }
+        
+        examTypeSelect.addEventListener('change', updateCreditsField);
+        updateCreditsField(); // Initial update
+        
+        // Form submission handler
+        form.addEventListener('submit', function(e) {
+            // Disable submit button to prevent double submissions
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Processing...';
+            
+            // Client-side validation
+            let isValid = true;
+            const requiredFields = [
+                '{{ form.title.id_for_label }}',
+                '{{ form.subject.id_for_label }}',
+                '{{ form.description.id_for_label }}',
+                '{{ form.set_type.id_for_label }}',
+                '{{ form.duration_minutes.id_for_label }}'
+            ];
+            
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (!field.value.trim()) {
+                    isValid = false;
+                    field.classList.add('border-red-500');
+                } else {
+                    field.classList.remove('border-red-500');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fill in all required fields');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '{% if object %}Update{% else %}Create{% endif %} Exam Set';
+            }
+        });
+        
+        // Add form debugging
+        console.log("Exam Set Form Loaded");
+        console.log("Form fields:", {
+            examType: examTypeSelect.value,
+            creditsField: creditsField.disabled
+        });
+    });
+</script>
+{% endblock %}

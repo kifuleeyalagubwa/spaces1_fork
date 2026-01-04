@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Complete Assessment - Uganda eLearning{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="text-center py-12">
+        <div class="mb-6">
+            <ion-icon name="checkmark-done-circle-outline" style="font-size: 80px; color: #28a745;"></ion-icon>
+        </div>
+        
+        <h2 class="text-2xl font-bold mb-4">Assessment Complete!</h2>
+        <p class="text-gray-600 mb-8 max-w-2xl mx-auto">
+            You've assessed all text questions for this exam attempt. Once you submit, 
+            the assessment will be finalized and immutable. Please review your assessments 
+            before final submission.
+        </p>
+        
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 max-w-2xl mx-auto">
+            <h4 class="font-bold text-blue-800 mb-2">
+                <ion-icon name="warning-outline" class="mr-2"></ion-icon>
+                Immutable Submission
+            </h4>
+            <p class="text-blue-700">
+                After submission, this assessment will be hashed and stored immutably. 
+                No further changes will be possible.
+            </p>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">
+                <ion-icon name="lock-closed-outline"></ion-icon>
+                Finalize Assessment
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

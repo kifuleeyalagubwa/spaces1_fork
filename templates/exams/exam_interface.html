@@ -1,0 +1,780 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Taking Exam - Uganda eLearning{% endblock %}
+
+{% block extra_css %}
+<style>
+    .exam-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .exam-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 25px;
+        padding: 15px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    
+    .exam-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #8b0000;
+    }
+    
+    .exam-meta {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .timer-container {
+        background: #8b0000;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .browser-leaves {
+        background: rgba(255, 193, 7, 0.15);
+        color: #856404;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .question-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
+    
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .question-number {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #8b0000;
+    }
+    
+    .question-text {
+        font-size: 1.2rem;
+        margin-bottom: 25px;
+        line-height: 1.6;
+    }
+    
+    .mcq-options {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .mcq-option {
+        display: flex;
+        align-items: center;
+        padding: 14px 18px;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .mcq-option:hover {
+        background: #f9f9f9;
+        border-color: #d0d0d0;
+    }
+    
+    .mcq-option.selected {
+        border-color: #8b0000;
+        background: rgba(139, 0, 0, 0.03);
+    }
+    
+    .mcq-option input {
+        margin-right: 12px;
+    }
+    
+    .mcq-option .letter {
+        font-weight: 600;
+        margin-right: 10px;
+        color: #8b0000;
+    }
+    
+    .text-answer textarea {
+        width: 100%;
+        min-height: 150px;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        font-size: 1rem;
+        resize: vertical;
+    }
+    
+    .navigation-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 30px;
+    }
+    
+    .progress-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .progress-bar {
+        flex-grow: 1;
+        height: 10px;
+        background: #e0e0e0;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: #8b0000;
+        width: {{ progress_percent }}%;
+        transition: width 0.3s ease;
+    }
+    
+    .page-indicator {
+        background: #f5f5f5;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+    
+    .question-nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 15px;
+        justify-content: center;
+    }
+    
+    .question-nav-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 1px solid #ddd;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .question-nav-btn:hover {
+        background: #f0f0f0;
+    }
+    
+    .question-nav-btn.active {
+        background: #8b0000;
+        color: white;
+        border-color: #8b0000;
+    }
+    
+    .question-nav-btn.answered {
+        background: #e8f4e8;
+        border-color: #4CAF50;
+    }
+
+    /* Modal styles */
+    .modal-content {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #eee;
+        padding: 20px;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #eee;
+        padding: 20px;
+    }
+    
+    /* Time expired notification */
+    #time-expired-notification {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ffcc00;
+        color: #333;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        max-width: 90%;
+        animation: slideIn 0.5s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from { top: -100px; opacity: 0; }
+        to { top: 20px; opacity: 1; }
+    }
+    
+    #close-notification {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        margin-left: 15px;
+        font-size: 1.2rem;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .exam-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .exam-meta {
+            justify-content: space-between;
+        }
+        
+        .question-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .navigation-container {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .navigation-container .btn {
+            width: 100%;
+        }
+        
+        .question-text {
+            font-size: 1.1rem;
+        }
+        
+        .mcq-option {
+            padding: 12px 15px;
+        }
+        
+        #time-expired-notification {
+            width: 90%;
+            padding: 12px 20px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .exam-container {
+            padding: 15px;
+        }
+        
+        .question-card {
+            padding: 20px;
+        }
+        
+        .exam-meta {
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+        }
+        
+        .timer-container, .browser-leaves {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .question-nav {
+            gap: 8px;
+        }
+        
+        .question-nav-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 0.9rem;
+        }
+        
+        #time-expired-notification {
+            flex-direction: column;
+            text-align: center;
+            padding: 15px;
+        }
+        
+        #close-notification {
+            margin-top: 10px;
+        }
+    }
+    
+    .btn {
+        padding: 12px 24px;
+        border-radius: 50px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.3s;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: none;
+        font-size: 1rem;
+    }
+    
+    .btn-outline {
+        background-color: transparent;
+        color: #8b0000;
+        border: 1px solid #8b0000;
+    }
+    
+    .btn-outline:hover {
+        background-color: rgba(139, 0, 0, 0.05);
+    }
+    
+    .btn-primary {
+        background: #8b0000;
+        color: white;
+        box-shadow: 0 4px 8px rgba(139, 0, 0, 0.2);
+    }
+    
+    .btn-primary:hover {
+        background: #700000;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(139, 0, 0, 0.25);
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: #c82333;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exam-container">
+    <!-- Exam header with title, timer and leave counter -->
+    <div class="exam-header">
+        <div class="exam-title">{{ attempt.exam_set.title }}</div>
+        <div class="exam-meta">
+            <div class="timer-container">
+                <ion-icon name="time-outline" class="mr-2"></ion-icon>
+                <span id="time-remaining">{{ time_remaining_display }}</span>
+            </div>
+            
+            {% if attempt.is_first_attempt %}
+            <div class="browser-leaves">
+                <ion-icon name="warning-outline" class="mr-1"></ion-icon>
+                Leaves: <span id="leave-count">0</span>/3
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        <div class="page-indicator">
+            <span id="current-page">{{ current_index|add:1 }}</span> / {{ total_questions }}
+        </div>
+    </div>
+    
+    <div class="question-card">
+        <div class="question-header">
+            <div class="question-number">Question {{ current_index|add:1 }} of {{ total_questions }}</div>
+        </div>
+        
+        <div class="question-text">
+            {{ question.text|linebreaks }}
+        </div>
+        
+        <form method="post" id="answer-form" data-save-url="{% url 'exams:exam_interface' pk=attempt.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="question_id" value="{{ question.id }}">
+            
+            {% if question.question_type == 'MCQ' %}
+            <div class="mcq-options">
+                {% for choice in question.choices %}
+                <label class="mcq-option {% if form.mcq_answer.value == choice.letter %}selected{% endif %}">
+                    <input type="radio" name="mcq_answer" value="{{ choice.letter }}" 
+                           {% if form.mcq_answer.value == choice.letter %}checked{% endif %}
+                           data-question-id="{{ question.id }}">
+                    <div>
+                        <span class="letter">{{ choice.letter }}.</span> {{ choice.text }}
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-answer">
+                {{ form.text_answer }}
+            </div>
+            {% endif %}
+            
+            <div class="navigation-container">
+                {% if current_index > 0 %}
+                <button type="submit" name="prev" class="btn btn-outline">
+                    <ion-icon name="arrow-back-outline"></ion-icon> Previous
+                </button>
+                {% else %}
+                <div></div> <!-- Empty spacer -->
+                {% endif %}
+                
+                {% if current_index < total_questions|add:"-1" %}
+                <button type="submit" name="next" class="btn btn-primary">
+                    Next <ion-icon name="arrow-forward-outline"></ion-icon>
+                </button>
+                {% else %}
+                    {% if attempt.is_first_attempt %}
+                    <!-- For first attempts, show modal trigger -->
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#submitModal">
+                        Submit Exam <ion-icon name="checkmark-outline"></ion-icon>
+                    </button>
+                    {% else %}
+                    <!-- For non-first attempts, show practice modal -->
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#practiceSubmitModal">
+                        Submit Exam <ion-icon name="checkmark-outline"></ion-icon>
+                    </button>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </form>
+        
+        <!-- Question Navigation -->
+        <div class="question-nav">
+            {% for i in question_range %}
+            <div class="question-nav-btn {% if i == current_index %}active{% endif %}" 
+                 data-index="{{ i }}" onclick="goToQuestion({{ i }})">
+                {{ i|add:1 }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Submit Confirmation Modal (only for first attempts) -->
+{% if attempt.is_first_attempt %}
+<div class="modal fade" id="submitModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Submit Exam</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to submit your exam? This action cannot be undone.</p>
+                {% if unanswered_count > 0 %}
+                <div class="alert alert-warning">
+                    You have {{ unanswered_count }} unanswered question(s).
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'exams:exam_submit' pk=attempt.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Submit Exam</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- Practice Exam Submit Modal -->
+<div class="modal fade" id="practiceSubmitModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Submit Practice Exam</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you ready to submit your practice exam?</p>
+                {% if unanswered_count > 0 %}
+                <div class="alert alert-warning">
+                    You have {{ unanswered_count }} unanswered question(s).
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'exams:exam_submit' pk=attempt.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Submit Exam</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Timer functionality
+    const timerElement = document.getElementById('time-remaining');
+    let totalSeconds = {{ time_remaining_seconds }};
+    let timeExpired = false;
+    let timerInterval = null;
+    let isSubmitting = false;
+
+    // Function to save answer to server
+    function saveAnswer(questionId) {
+        const form = document.getElementById('answer-form');
+        const formData = new FormData(form);
+        
+        // Remove navigation commands
+        formData.delete('prev');
+        formData.delete('next');
+        formData.delete('submit');
+        
+        // Add save flag
+        formData.append('save_only', '1');
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).then(response => {
+            if (response.ok) {
+                // Mark question as answered in navigation
+                const currentBtn = document.querySelector(`.question-nav-btn[data-index="{{ current_index }}"]`);
+                if (currentBtn) {
+                    currentBtn.classList.add('answered');
+                }
+            }
+        });
+    }
+
+    function submitExam(isAutoSubmit = false) {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        
+        // Create a form to submit the exam
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'exams:exam_submit' pk=attempt.id %}";
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        form.appendChild(csrfInput);
+        
+        if (isAutoSubmit) {
+            const autoSubmitInput = document.createElement('input');
+            autoSubmitInput.type = 'hidden';
+            autoSubmitInput.name = 'auto_submit';
+            autoSubmitInput.value = '1';
+            form.appendChild(autoSubmitInput);
+        }
+        
+        // Include all answers in the submission
+        const answerForm = document.getElementById('answer-form');
+        const answerData = new FormData(answerForm);
+        for (const [name, value] of answerData.entries()) {
+            if (name === 'csrfmiddlewaretoken') continue;
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            form.appendChild(input);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function updateTimer() {
+        if (totalSeconds <= 0 && !timeExpired) {
+            timeExpired = true;
+            clearInterval(timerInterval);
+            
+            // Different behavior for first vs non-first attempts
+            if ({% if attempt.is_first_attempt %}true{% else %}false{% endif %}) {
+                // For first attempts: auto-submit immediately
+                submitExam(true);
+            } else {
+                // For non-first attempts: non-blocking notification
+                createTimeExpiredNotification();
+            }
+            return;
+        }
+        
+        if (totalSeconds > 0) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            totalSeconds--;
+        }
+    }
+    
+    // Create non-blocking time expiration notification
+    function createTimeExpiredNotification() {
+        // Only create notification if it doesn't already exist
+        if (document.getElementById('time-expired-notification')) return;
+        
+        const notification = document.createElement('div');
+        notification.id = 'time-expired-notification';
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <ion-icon name="time-outline" style="font-size: 1.5rem;"></ion-icon>
+                <div>
+                    <strong>Time's up!</strong> You can continue working, but your exam time has expired.
+                </div>
+                <button id="close-notification" style="background: transparent; border: none; 
+                          cursor: pointer; margin-left: 15px; font-size: 1.2rem;">
+                    &times;
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Add close functionality
+        document.getElementById('close-notification').addEventListener('click', function() {
+            document.body.removeChild(notification);
+        });
+        
+        // Auto-close after 8 seconds
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 8000);
+    }
+    
+    // Start the timer
+    timerInterval = setInterval(updateTimer, 1000);
+    updateTimer(); // Initial update
+    
+    // Browser leave tracking (only for first attempts)
+    {% if attempt.is_first_attempt %}
+    let leaveCount = 0;
+    document.getElementById('leave-count').textContent = leaveCount;
+    
+    function handleVisibilityChange() {
+        if (document.visibilityState === 'hidden') {
+            leaveCount++;
+            document.getElementById('leave-count').textContent = leaveCount;
+            
+            // Send leave event to server
+            fetch("{% url 'exams:exam_interface' pk=attempt.id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ type: 'browser_leave' })
+            });
+            
+            if (leaveCount >= 3) {
+                submitExam(true);
+            }
+        }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    {% endif %}
+    
+    // MCQ option selection styling and saving
+    document.querySelectorAll('.mcq-option input').forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Update UI
+            document.querySelectorAll('.mcq-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            this.closest('.mcq-option').classList.add('selected');
+            
+            // Save answer
+            const questionId = this.getAttribute('data-question-id');
+            saveAnswer(questionId);
+        });
+    });
+    
+    // Initialize answered questions
+    document.querySelectorAll('.mcq-option input:checked').forEach(radio => {
+        const currentBtn = document.querySelector(`.question-nav-btn[data-index="{{ current_index }}"]`);
+        if (currentBtn) {
+            currentBtn.classList.add('answered');
+        }
+    });
+    
+    // Text answer saving
+    const textArea = document.querySelector('.text-answer textarea');
+    if (textArea) {
+        // Initialize if already has content
+        if (textArea.value) {
+            const currentBtn = document.querySelector(`.question-nav-btn[data-index="{{ current_index }}"]`);
+            if (currentBtn) {
+                currentBtn.classList.add('answered');
+            }
+        }
+        
+        // Save on blur
+        textArea.addEventListener('blur', function() {
+            const questionId = "{{ question.id }}";
+            saveAnswer(questionId);
+        });
+    }
+    
+    // Navigation function
+    function goToQuestion(index) {
+        // Update current question index in Redis
+        const form = document.getElementById('answer-form');
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'go_to';
+        hiddenInput.value = index;
+        form.appendChild(hiddenInput);
+        form.submit();
+    }
+    
+    // Show warning when leaving page (only for first attempts)
+    {% if attempt.is_first_attempt %}
+    window.addEventListener('beforeunload', function(e) {
+        if (!isSubmitting) {
+            e.preventDefault();
+            e.returnValue = 'Are you sure you want to leave? This may count as leaving the exam.';
+            return e.returnValue;
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,6 @@
+<option value="">---------</option>
+{% for level in levels %}
+<option value="{{ level.id }}" {% if form.education_level.value == level.id %}selected{% endif %}>
+    {{ level.name }}
+</option>
+{% endfor %}

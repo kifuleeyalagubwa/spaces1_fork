@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Submit Exam - Uganda eLearning{% endblock %}
+
+{% block extra_css %}
+<style>
+    .submit-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        text-align: center;
+    }
+    
+    .confirmation-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        margin-bottom: 30px;
+    }
+    
+    .confirmation-icon {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #8b0000, #c90000);
+        border-radius: 50%;
+        color: white;
+    }
+    
+    .confirmation-icon ion-icon {
+        font-size: 48px;
+    }
+    
+    .confirmation-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 15px;
+    }
+    
+    .confirmation-text {
+        font-size: 1.1rem;
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 25px;
+    }
+    
+    .attempt-stats {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin: 30px 0;
+        flex-wrap: wrap;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 15px;
+        min-width: 140px;
+        border-radius: 12px;
+        background: #f9f9f9;
+    }
+    
+    .stat-number {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #8b0000;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .security-notice {
+        background: #fff9e6;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: left;
+        margin: 30px 0;
+    }
+    
+    .security-notice h4 {
+        display: flex;
+        align-items: center;
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    
+    .security-notice p {
+        font-size: 0.95rem;
+        color: #666;
+        line-height: 1.5;
+    }
+    
+    @media (max-width: 576px) {
+        .submit-container {
+            padding: 0 15px;
+        }
+        
+        .confirmation-card {
+            padding: 30px 20px;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .action-buttons a, 
+        .action-buttons form button {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="submit-container">
+    <div class="confirmation-card">
+        <div class="confirmation-icon">
+            <ion-icon name="document-text-outline"></ion-icon>
+        </div>
+        
+        <h2 class="confirmation-title">Ready to submit your exam?</h2>
+        
+        <p class="confirmation-text">
+            You're about to submit your exam for grading. Please review the summary below 
+            before final submission. Once submitted, you won't be able to make changes.
+        </p>
+        
+        <div class="attempt-stats">
+            <div class="stat-item">
+                <div class="stat-number">{{ answered_count }}</div>
+                <div class="stat-label">Answered</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-number">{{ unanswered_count }}</div>
+                <div class="stat-label">Unanswered</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-number">{{ total_questions }}</div>
+                <div class="stat-label">Total Questions</div>
+            </div>
+        </div>
+        
+        {% if is_first_attempt %}
+        <div class="security-notice">
+            <h4>
+                <ion-icon name="shield-checkmark-outline" class="mr-2"></ion-icon>
+                Security Notice
+            </h4>
+            <p>
+                This is your first attempt. Your answers will be securely hashed for 
+                blockchain verification. Results will be available once grading is complete.
+            </p>
+        </div>
+        {% endif %}
+        
+        <div class="action-buttons">
+            <a href="{% url 'exams:exam_interface' pk=attempt.id %}" class="btn btn-outline">
+                <ion-icon name="arrow-back-outline"></ion-icon> Review Answers
+            </a>
+            
+            <form method="post" action="{% url 'exams:exam_submit' pk=attempt.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                    Submit Exam <ion-icon name="checkmark-outline"></ion-icon>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="text-gray-500 text-sm mt-6">
+        <p>
+            <ion-icon name="time-outline" class="mr-1"></ion-icon>
+            Time spent: {{ time_spent }} minutes
+        </p>
+    </div>
+</div>
+{% endblock %}

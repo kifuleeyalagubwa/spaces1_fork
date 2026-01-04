@@ -1,0 +1,61 @@
+<div id="special-content-panel" class="special-content-panel">
+    <div class="panel-header">
+        <h4><ion-icon name="cube-outline"></ion-icon> Content Assistant</h4>
+        <button id="toggle-special-panel" class="btn btn-sm btn-outline">
+            <ion-icon name="chevron-down-outline"></ion-icon>
+        </button>
+    </div>
+    
+    <div class="panel-body">
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs" id="specialContentTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="math-tab" data-bs-toggle="tab" 
+                        data-bs-target="#math-panel" type="button" role="tab">
+                    Math
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="graph-tab" data-bs-toggle="tab" 
+                        data-bs-target="#graph-panel" type="button" role="tab">
+                    Graphs
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="numberline-tab" data-bs-toggle="tab" 
+                        data-bs-target="#numberline-panel" type="button" role="tab">
+                    Number Lines
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="geometry-tab" data-bs-toggle="tab" 
+                        data-bs-target="#geometry-panel" type="button" role="tab">
+                    Geometry
+                </button>
+            </li>
+        </ul>
+        
+        <!-- Tab Content -->
+        <div class="tab-content" id="specialContentTabContent">
+            <!-- Math Panel -->
+            <div class="tab-pane fade show active" id="math-panel" role="tabpanel">
+                {% include "study/partials/_math_panel.html" %}
+            </div>
+            
+            <!-- Graph Panel -->
+            <div class="tab-pane fade" id="graph-panel" role="tabpanel">
+                {% include "study/partials/_graph_panel.html" %}
+            </div>
+            
+            <!-- Number Line Panel -->
+            <div class="tab-pane fade" id="numberline-panel" role="tabpanel">
+                {% include "study/partials/_numberline_panel.html" %}
+            </div>
+            
+            <!-- Geometry Panel -->
+            <div class="tab-pane fade" id="geometry-panel" role="tabpanel">
+                {% include "study/partials/_geometry_panel.html" %}
+            </div>
+        </div>
+    </div>
+</div>

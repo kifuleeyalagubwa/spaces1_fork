@@ -1,0 +1,34 @@
+<div class="numberline-panel">
+    <div class="numberline-controls">
+        <div class="form-group">
+            <label>Number Line Range:</label>
+            <div class="form-row">
+                <input type="number" id="num-min" class="form-control" value="0">
+                <span>to</span>
+                <input type="number" id="num-max" class="form-control" value="10">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Mark Points:</label>
+            <input type="text" id="mark-points" class="form-control" placeholder="2, 4.5, 7">
+        </div>
+        
+        <div class="form-group">
+            <label>Highlight Regions:</label>
+            <input type="text" id="highlight-regions" class="form-control" placeholder="(3,5), [8,10]">
+        </div>
+        
+        <button id="draw-numberline" class="btn btn-primary">Draw Number Line</button>
+    </div>
+    
+    <div class="numberline-preview">
+        <svg id="numberline-svg" width="100%" height="100"></svg>
+    </div>
+    
+    <div class="numberline-actions">
+        <button id="insert-numberline" class="btn btn-outline">
+            <ion-icon name="arrow-forward-outline"></ion-icon> Insert
+        </button>
+    </div>
+</div>

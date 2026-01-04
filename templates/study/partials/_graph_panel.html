@@ -1,0 +1,42 @@
+<div class="graph-panel">
+    <div class="graph-controls">
+        <div class="form-group">
+            <label>Function:</label>
+            <input type="text" id="graph-function" class="form-control" placeholder="x^2">
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>X Min:</label>
+                <input type="number" id="x-min" class="form-control" value="-5">
+            </div>
+            <div class="form-group">
+                <label>X Max:</label>
+                <input type="number" id="x-max" class="form-control" value="5">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Y Min:</label>
+                <input type="number" id="y-min" class="form-control" value="-5">
+            </div>
+            <div class="form-group">
+                <label>Y Max:</label>
+                <input type="number" id="y-max" class="form-control" value="5">
+            </div>
+        </div>
+        
+        <button id="plot-graph" class="btn btn-primary">Plot Graph</button>
+    </div>
+    
+    <div class="graph-preview">
+        <canvas id="graph-canvas"></canvas>
+    </div>
+    
+    <div class="graph-actions">
+        <button id="insert-graph" class="btn btn-outline">
+            <ion-icon name="arrow-forward-outline"></ion-icon> Insert
+        </button>
+    </div>
+</div>

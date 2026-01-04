@@ -1,0 +1,215 @@
+<!-- templates/trends/institution_dashboard.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if institution %}{{ institution.name }} Dashboard{% else %}My Dashboard{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="h3 mb-1">
+                                <ion-icon name="business-outline"></ion-icon>
+                                {% if institution %}
+                                    {{ institution.name }}
+                                    <span class="badge bg-secondary">{{ institution.get_institution_type_display }}</span>
+                                {% else %}
+                                    My Personal Dashboard
+                                {% endif %}
+                            </h1>
+                            <p class="text-muted mb-0">
+                                {% if institution %}
+                                    Subdomain: {{ institution.subdomain }} • Members: {{ users_count }}
+                                {% else %}
+                                    Your personal workspace
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            {% if institution and institution.logo %}
+                                <img src="{{ institution.logo.url }}" alt="{{ institution.name }} logo" 
+                                     class="img-fluid" style="max-height: 80px;">
+                            {% endif %}
+                            
+                            <!-- Institution Switch -->
+                            <div class="mt-2">
+                                <a href="{% url 'institution_switch' %}" class="btn btn-sm btn-outline-primary">
+                                    <ion-icon name="swap-horizontal-outline"></ion-icon>
+                                    Switch View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rest of the dashboard template remains the same but will work for both -->
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="card-title">{{ spaces_count }}</h4>
+                            <p class="card-text">
+                                {% if institution %}Institutional{% else %}Personal{% endif %} Spaces
+                            </p>
+                        </div>
+                        <div class="col-4 text-end">
+                            <ion-icon name="business-outline" style="font-size: 2rem;"></ion-icon>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="card-title">{{ trends_count }}</h4>
+                            <p class="card-text">
+                                {% if institution %}Institutional{% else %}Personal{% endif %} Schedules
+                            </p>
+                        </div>
+                        <div class="col-4 text-end">
+                            <ion-icon name="calendar-outline" style="font-size: 2rem;"></ion-icon>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if institution %}
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="card-title">{{ users_count }}</h4>
+                            <p class="card-text">Members</p>
+                        </div>
+                        <div class="col-4 text-end">
+                            <ion-icon name="people-outline" style="font-size: 2rem;"></ion-icon>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'space_create' %}" class="btn btn-outline-primary w-100">
+                                <ion-icon name="add-outline"></ion-icon>
+                                Create Space
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'trend_create' %}" class="btn btn-outline-success w-100">
+                                <ion-icon name="calendar-outline"></ion-icon>
+                                Schedule Event
+                            </a>
+                        </div>
+                        {% if institution %}
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'user_management' %}" class="btn btn-outline-info w-100">
+                                <ion-icon name="person-add-outline"></ion-icon>
+                                Manage Users
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'institution_settings' %}" class="btn btn-outline-secondary w-100">
+                                <ion-icon name="settings-outline"></ion-icon>
+                                Settings
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Spaces</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_spaces %}
+                        <div class="list-group list-group-flush">
+                            {% for space in recent_spaces %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ space.name }}</h6>
+                                            <small class="text-muted">{{ space.get_space_type_display }}</small>
+                                        </div>
+                                        {% if space.building %}
+                                        <span class="badge bg-primary">{{ space.building }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No spaces created yet.</p>
+                        <a href="{% url 'space_create' %}" class="btn btn-sm btn-primary">Create First Space</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Schedules</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_trends %}
+                        <div class="list-group list-group-flush">
+                            {% for trend in recent_trends %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ trend.title }}</h6>
+                                            <small class="text-muted">
+                                                {{ trend.start_time|date:"M d, Y H:i" }}
+                                            </small>
+                                        </div>
+                                        <span class="badge bg-success">{{ trend.get_trend_type_display }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No schedules created yet.</p>
+                        <a href="{% url 'trend_create' %}" class="btn btn-sm btn-success">Create First Schedule</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

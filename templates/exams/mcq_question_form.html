@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if question %}Update MCQ Question{% else %}Add New MCQ Question{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Add this new style for better choice visualization */
+    .choice-preview-container {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .choice-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .choice-preview-item {
+        padding: 8px 15px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .choice-preview-item.correct {
+        background: #dcfce7;
+        border-color: #22c55e;
+    }
+
+    .choice-container {
+        background-color: #f9fafb;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    
+    .choice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .choices-list {
+        display: grid;
+        gap: 15px;
+    }
+    
+    .choice-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .choice-letter {
+        flex: 0 0 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #e5e7eb;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+    
+    .choice-input {
+        flex: 1;
+        padding: 10px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+    }
+    
+    .remove-choice-btn {
+        background: #fef2f2;
+        color: #ef4444;
+        border: 1px solid #fee2e2;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    
+    .correct-choice-selector {
+        margin-top: 25px;
+        padding: 20px;
+        background: #f0fdf4;
+        border-radius: 10px;
+    }
+    
+    .choice-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .choice-preview-item {
+        padding: 8px 15px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .choice-preview-item.correct {
+        background: #dcfce7;
+        border-color: #22c55e;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">
+        <ion-icon name="list-outline"></ion-icon>
+        {% if question %}Update MCQ Question{% else %}Add New MCQ Question{% endif %}
+    </h2>
+    
+    <form method="post" id="mcq-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label>{{ form.text.label }}</label>
+            {{ form.text }}
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="form-group">
+                <label>{{ form.points.label }}</label>
+                {{ form.points }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.order.label }}</label>
+                {{ form.order }}
+            </div>
+        </div>
+        
+        <div class="choice-container">
+            <div class="choice-header">
+                <h3 class="font-bold">Answer Choices</h3>
+                <button type="button" id="add-choice" class="btn btn-outline">
+                    <ion-icon name="add-outline"></ion-icon> Add Choice
+                </button>
+            </div>
+            
+            <div class="choices-list" id="choices-container">
+                <!-- Choices will be added here dynamically -->
+                {% for choice in question.choices %}
+                <div class="choice-item">
+                    <div class="choice-letter">{{ choice.letter }}</div>
+                    <input type="text" class="choice-input" value="{{ choice.text }}" 
+                           placeholder="Enter option text" data-letter="{{ choice.letter }}">
+                    <button type="button" class="remove-choice-btn">
+                        <ion-icon name="trash-outline"></ion-icon>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <input type="hidden" name="choices" id="id_choices" value='{{ form.choices.value|default:"[]" }}'>
+        </div>
+        
+        <div class="correct-choice-selector">
+            <h3 class="font-bold mb-4">Correct Answer</h3>
+            <div class="form-group">
+                <label>Select the correct answer</label>
+                {{ form.correct_choice }}
+            </div>
+            
+            <!-- Add this preview section -->
+            <div class="choice-preview-container">
+                <h4 class="font-medium">Choice Preview</h4>
+                <div class="choice-preview" id="choice-preview">
+                    {% for choice in question.choices %}
+                    <div class="choice-preview-item {% if choice.letter == form.correct_choice.value %}correct{% endif %}">
+                        <span>{{ choice.letter }}. {{ choice.text }}</span>
+                        {% if choice.letter == form.correct_choice.value %}
+                        <ion-icon name="checkmark-circle" class="text-green-600"></ion-icon>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-between mt-8">
+            <a href="{% url 'exams:exam_set_detail' pk=exam_set.id %}" class="btn btn-outline">
+                <ion-icon name="arrow-back-outline"></ion-icon> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <ion-icon name="save-outline"></ion-icon>
+                {% if question %}Update Question{% else %}Create Question{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const choicesContainer = document.getElementById('choices-container');
+    const choicesInput = document.getElementById('id_choices');
+    const correctChoiceSelect = document.getElementById('id_correct_choice');
+    const choicePreview = document.getElementById('choice-preview');
+    let choiceCounter = 0;
+    
+    // Initialize choices from form data
+    let choices = [];
+    try {
+        choices = JSON.parse(choicesInput.value || '[]');
+    } catch (e) {
+        choices = [];
+    }
+    
+    // Render existing choices
+    choices.forEach(choice => {
+        addChoiceToDOM(choice.letter, choice.text);
+    });
+    updateChoicesData();
+    
+    // Add new choice
+    document.getElementById('add-choice').addEventListener('click', function() {
+        if (choiceCounter >= 8) {
+            alert('Maximum of 8 choices allowed');
+            return;
+        }
+        
+        const nextLetter = String.fromCharCode(65 + choices.length);
+        addChoiceToDOM(nextLetter, '');
+        choices.push({ letter: nextLetter, text: '' });
+        choicesInput.value = JSON.stringify(choices);
+        updateChoicesData();
+    });
+    
+    // Add choice to DOM
+    function addChoiceToDOM(letter, text) {
+        choiceCounter++;
+        const choiceElement = document.createElement('div');
+        choiceElement.className = 'choice-item';
+        choiceElement.innerHTML = `
+            <div class="choice-letter">${letter}</div>
+            <input type="text" class="choice-input" value="${text}" 
+                   placeholder="Enter option text" data-letter="${letter}">
+            <button type="button" class="remove-choice-btn">
+                <ion-icon name="trash-outline"></ion-icon>
+            </button>
+        `;
+        
+        choicesContainer.appendChild(choiceElement);
+        
+        // Add event listeners
+        const inputField = choiceElement.querySelector('.choice-input');
+        inputField.addEventListener('input', updateChoicesData);
+        
+        choiceElement.querySelector('.remove-choice-btn').addEventListener('click', function() {
+            if (choicesContainer.children.length <= 2) {
+                alert('At least two choices are required');
+                return;
+            }
+            choiceElement.remove();
+            updateChoicesData();
+        });
+    }
+    
+    // Update hidden input and dropdown
+    function updateChoicesData() {
+        const choicesData = [];
+        const choiceElements = document.querySelectorAll('.choice-item');
+        
+        choiceElements.forEach(element => {
+            const letter = element.querySelector('.choice-letter').textContent;
+            const text = element.querySelector('.choice-input').value;
+            choicesData.push({ letter, text });
+        });
+        
+        // Update hidden field
+        choicesInput.value = JSON.stringify(choicesData);
+        
+        // Update correct choice dropdown
+        correctChoiceSelect.innerHTML = '<option value="">-- Select correct choice --</option>';
+        choicesData.forEach(choice => {
+            const option = document.createElement('option');
+            option.value = choice.letter;
+            option.textContent = `${choice.letter}. ${choice.text || '(empty)'}`;
+            if (choice.letter === correctChoiceSelect.dataset.current) {
+                option.selected = true;
+            }
+            correctChoiceSelect.appendChild(option);
+        });
+        
+        // Update preview
+        updateChoicePreview();
+    }
+    
+    // Update choice preview
+    function updateChoicePreview() {
+        choicePreview.innerHTML = '';
+        const choicesData = JSON.parse(choicesInput.value || '[]');
+        const correctChoice = correctChoiceSelect.value;
+        
+        choicesData.forEach(choice => {
+            const previewItem = document.createElement('div');
+            previewItem.className = `choice-preview-item ${choice.letter === correctChoice ? 'correct' : ''}`;
+            previewItem.innerHTML = `
+                <span>${choice.letter}. ${choice.text || 'Option text'}</span>
+                ${choice.letter === correctChoice ? '<ion-icon name="checkmark-circle" class="ml-2 text-green-600"></ion-icon>' : ''}
+            `;
+            choicePreview.appendChild(previewItem);
+        });
+    }
+    
+    // Update preview when correct choice changes
+    correctChoiceSelect.addEventListener('change', updateChoicePreview);
+    
+    // Initialize preview on page load
+    updateChoicePreview();
+    
+    // Form validation
+    document.getElementById('mcq-form').addEventListener('submit', function(e) {
+        const choicesData = JSON.parse(choicesInput.value || '[]');
+        
+        if (choicesData.length < 2) {
+            e.preventDefault();
+            alert('Please add at least two choices');
+            return;
+        }
+        
+        if (!correctChoiceSelect.value) {
+            e.preventDefault();
+            alert('Please select the correct answer');
+            return;
+        }
+        
+        // Validate all choices have text
+        const emptyChoices = choicesData.some(choice => !choice.text.trim());
+        if (emptyChoices) {
+            e.preventDefault();
+            alert('All choices must have text');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

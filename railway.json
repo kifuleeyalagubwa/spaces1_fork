@@ -1,0 +1,36 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "pip install -r requirements.txt",
+    "runCommand": "python manage.py collectstatic --noinput && gunicorn classroom.wsgi:application",
+    "watchPatterns": [
+      "**/*.py",
+      "**/*.html",
+      "**/*.js",
+      "**/*.css",
+      "requirements.txt"
+    ],
+    "nixpacksConfig": {
+      "phases": {
+        "setup": {
+          "aptPkgs": ["libpq-dev", "gcc", "python3-dev"]
+        },
+        "install": {
+          "cmd": "pip install -r requirements.txt"
+        },
+        "build": {
+          "cmd": "python manage.py collectstatic --noinput"
+        }
+      }
+    }
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": "/",
+    "healthcheckTimeout": 60,
+    "startCommand": "python manage.py migrate && gunicorn classroom.wsgi --log-file -"
+  }
+}

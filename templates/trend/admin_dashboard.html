@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-speedometer2"></i> Admin Dashboard</h2>
+        <div class="btn-group">
+            <a href="{% url 'content_review' %}" class="btn btn-warning">
+                <i class="bi bi-clipboard-check"></i> Content Review
+            </a>
+            <a href="{% url 'admin_user_list' %}" class="btn btn-info">
+                <i class="bi bi-people"></i> Manage Users
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- User Statistics -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">User Statistics</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h1 class="display-4">{{ user_stats.total_users }}</h1>
+                                    <p class="card-text">Total Users</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h1 class="display-4">{{ user_stats.verified_users }}</h1>
+                                    <p class="card-text">Verified Users</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ user_stats.new_today }}</h3>
+                                    <p class="card-text">New Today</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ user_stats.new_this_week }}</h3>
+                                    <p class="card-text">New This Week</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Statistics -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Content Statistics</h4>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Pending Educational Systems
+                            <span class="badge bg-warning rounded-pill">{{ content_stats.pending_systems }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Pending Education Levels
+                            <span class="badge bg-warning rounded-pill">{{ content_stats.pending_levels }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Pending Subjects
+                            <span class="badge bg-warning rounded-pill">{{ content_stats.pending_subjects }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Pending Trends
+                            <span class="badge bg-warning rounded-pill">{{ content_stats.pending_trends }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Users -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">Recent Users</h4>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for user in recent_users %}
+                        <a href="{% url 'admin_user_detail' user.id %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ user.username }}</h5>
+                                <small>{{ user.date_joined|timesince }} ago</small>
+                            </div>
+                            <p class="mb-1">{{ user.email }}</p>
+                            <small>
+                                Status: 
+                                <span class="badge {% if user.is_verified %}bg-success{% else %}bg-warning{% endif %}">
+                                    {% if user.is_verified %}Verified{% else %}Pending{% endif %}
+                                </span>
+                            </small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Content -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">Recent Content</h4>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for trend in recent_content %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ trend.title }}</h5>
+                                <span class="badge bg-primary">{{ trend.get_space_type_display }}</span>
+                            </div>
+                            <p class="mb-1">{{ trend.description|truncatechars:60 }}</p>
+                            <small>
+                                By: {{ trend.creator.username }} | 
+                                Status: 
+                                <span class="badge {% if trend.is_approved %}bg-success{% else %}bg-warning{% endif %}">
+                                    {% if trend.is_approved %}Approved{% else %}Pending{% endif %}
+                                </span>
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+        <a href="{% url 'system_metrics' %}" class="btn btn-outline-primary">
+            <i class="bi bi-graph-up"></i> View System Metrics
+        </a>
+        <a href="/admin/" class="btn btn-secondary">
+            <i class="bi bi-gear"></i> Advanced Admin Panel
+        </a>
+    </div>
+</div>
+{% endblock %}

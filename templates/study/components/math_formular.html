@@ -1,0 +1,33 @@
+<div class="math-formula">
+    <div class="formula-header">
+        <span class="formula-title">{{ formula.title }}</span>
+        <span class="formula-context">{{ formula.context }}</span>
+    </div>
+    
+    <div class="formula-content">
+        \[ {{ formula.content }} \]
+    </div>
+    
+    <div class="formula-explanation">
+        <h4>Explanation</h4>
+        <p>{{ formula.explanation }}</p>
+        
+        {% if formula.derivation %}
+        <div class="formula-derivation">
+            <h5>Derivation</h5>
+            <p>{{ formula.derivation }}</p>
+        </div>
+        {% endif %}
+        
+        {% if formula.applications %}
+        <div class="formula-applications">
+            <h5>Applications</h5>
+            <ul>
+                {% for application in formula.applications %}
+                <li>{{ application }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>

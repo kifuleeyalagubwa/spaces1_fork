@@ -1,0 +1,57 @@
+{% if items %}
+<div class="list-group">
+    {% for item in items %}
+    <div class="list-group-item">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">
+                {% if model == 'system' %}{{ item.name }}
+                {% elif model == 'level' %}{{ item.name }} ({{ item.system.name }})
+                {% elif model == 'subject' %}{{ item.name }} ({{ item.education_level.name }})
+                {% elif model == 'topic' %}{{ item.name }} ({{ item.subject.name }})
+                {% elif model == 'domain' %}{{ item.name }}
+                {% elif model == 'institution' %}{{ item.name }}
+                {% elif model == 'trend' %}{{ item.title }}
+                {% endif %}
+            </h5>
+            <small class="text-muted">
+                Created: {{ item.created_at|date:"M d, Y" }}
+            </small>
+        </div>
+        
+        <p class="mb-1">
+            {% if model == 'system' %}{{ item.description|truncatechars:100 }}
+            {% elif model == 'level' %}{{ item.system.description|truncatechars:100 }}
+            {% elif model == 'subject' %}{{ item.description|truncatechars:100 }}
+            {% elif model == 'topic' %}{{ item.description|truncatechars:100 }}
+            {% elif model == 'domain' %}{{ item.description|truncatechars:100 }}
+            {% elif model == 'institution' %}{{ item.description|truncatechars:100 }}
+            {% elif model == 'trend' %}{{ item.description|truncatechars:100 }}
+            {% endif %}
+        </p>
+        
+        <small>
+            Creator: 
+            <a href="{% url 'admin_user_detail' item.created_by.id %}">
+                {{ item.created_by.username }}
+            </a>
+        </small>
+        
+        <div class="d-flex gap-2 mt-2">
+            <a href="{% url 'approve_item' model item.id %}" class="btn btn-sm btn-success">
+                <i class="bi bi-check-circle"></i> Approve
+            </a>
+            <a href="{% url 'reject_item' model item.id %}" class="btn btn-sm btn-danger"
+               onclick="return confirm('Are you sure you want to reject and delete this item?')">
+                <i class="bi bi-x-circle"></i> Reject
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-check-circle display-1 text-success"></i>
+    <h4 class="mt-3">No pending {{ model }}s</h4>
+    <p>All {{ model }}s have been approved</p>
+</div>
+{% endif %}

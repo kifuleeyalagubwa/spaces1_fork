@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">
+                {% if object %}Update Educational System{% else %}Create New Educational System{% endif %}
+            </h2>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> 
+                        {% if object %}Update System{% else %}Create System{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">Existing Systems</h4>
+        </div>
+        <div class="card-body">
+            <div class="list-group">
+                {% for system in educational_systems %}
+                <a href="#" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ system.name }}</h5>
+                        <small>{{ system.get_system_type_display }}</small>
+                    </div>
+                    <p class="mb-1">{{ system.description|truncatechars:100 }}</p>
+                    <small>Created by: {{ system.created_by.username }}</small>
+                </a>
+                {% empty %}
+                <div class="text-center py-3">
+                    <i class="bi bi-info-circle display-4 text-muted"></i>
+                    <p class="mt-3">No educational systems created yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

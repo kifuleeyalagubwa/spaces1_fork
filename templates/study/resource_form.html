@@ -1,0 +1,296 @@
+{% extends "study/base.html" %}
+{% load static crispy_forms_tags %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/resource_form.css' %}">
+<link rel="stylesheet" href="{% static 'css/math_panel.css' %}">
+{% endblock %}
+
+{% block study_title %}
+    {% if form.instance.pk %}Edit Resource{% else %}Create New Resource{% endif %}
+{% endblock %}
+
+{% block study_actions %}
+<a href="{% url 'study:resource_list' %}" class="btn btn-outline">
+    <ion-icon name="arrow-back-outline"></ion-icon> Cancel
+</a>
+{% endblock %}
+
+{% block study_content %}
+<form method="post" enctype="multipart/form-data" class="resource-form">
+    {% csrf_token %}
+    
+    <div class="form-section">
+        <h3>Basic Information</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                {{ form.title|as_crispy_field }}
+            </div>
+            <div class="form-group">
+                {{ form.description|as_crispy_field }}
+            </div>
+            <div class="form-group">
+                {{ form.resource_type|as_crispy_field }}
+            </div>
+            <div class="form-group">
+                {{ form.access_level|as_crispy_field }}
+            </div>
+            <div class="form-group" id="access-cost-group">
+                {{ form.access_cost|as_crispy_field }}
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h3>Content</h3>
+        <div id="content-fields">
+            <div id="text-fields" class="resource-type-fields">
+                <div class="form-group">
+                    {{ form.content|as_crispy_field }}
+                    <small class="form-text text-muted">
+                        Use Markdown for formatting. Math formulas: $$E = mc^2$$
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <button type="button" class="btn btn-outline" id="math-btn">
+                        <ion-icon name="calculator-outline"></ion-icon> Insert Math Formula
+                    </button>
+                    <button type="button" class="btn btn-outline" id="code-btn">
+                        <ion-icon name="code-slash-outline"></ion-icon> Insert Code Block
+                    </button>
+                </div>
+            </div>
+            
+            <div id="media-fields" class="resource-type-fields" style="display: none;">
+                <div class="form-group">
+                    {{ form.file|as_crispy_field }}
+                </div>
+                
+                <div id="video-fields" class="media-type-fields">
+                    <div class="form-group">
+                        {{ form.thumbnail|as_crispy_field }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.transcript|as_crispy_field }}
+                    </div>
+                    <div class="form-group">
+                        {{ form.duration|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Math Input Panel -->
+        <div id="math-panel-container">
+            {% include "study/partials/_math_panel.html" %}
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h3>Classification</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                {{ form.subjects|as_crispy_field }}
+            </div>
+            <div class="form-group">
+                {{ form.topics|as_crispy_field }}
+            </div>
+            <div class="form-group">
+                {{ form.education_level|as_crispy_field }}
+            </div>
+            <div class="form-group">
+                {{ form.skill_domains|as_crispy_field }}
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+            {% if form.instance.pk %}Update Resource{% else %}Create Resource{% endif %}
+        </button>
+    </div>
+</form>
+
+<!-- Math Formula Modal -->
+<div id="math-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Insert Math Formula</h3>
+        <div class="form-group">
+            <label for="math-input">LaTeX Formula</label>
+            <input type="text" id="math-input" class="form-control" placeholder="E = mc^2">
+            <div id="math-preview-modal">Preview: \( \)</div>
+        </div>
+        <div class="form-group">
+            <button id="insert-math-modal" class="btn btn-primary">Insert Formula</button>
+        </div>
+    </div>
+</div>
+
+<!-- Code Block Modal -->
+<div id="code-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Insert Code Block</h3>
+        <div class="form-group">
+            <label for="code-language">Language</label>
+            <select id="code-language" class="form-control">
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="java">Java</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="sql">SQL</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="code-content">Code</label>
+            <textarea id="code-content" class="form-control" rows="10"></textarea>
+        </div>
+        <div class="form-group">
+            <button id="insert-code" class="btn btn-primary">Insert Code</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle access cost field based on access level
+    const accessLevel = document.getElementById('id_access_level');
+    const accessCostGroup = document.getElementById('access-cost-group');
+    
+    function toggleAccessCost() {
+        if (accessLevel.value === 'premium') {
+            accessCostGroup.style.display = 'block';
+        } else {
+            accessCostGroup.style.display = 'none';
+        }
+    }
+    
+    if (accessLevel) {
+        accessLevel.addEventListener('change', toggleAccessCost);
+        toggleAccessCost(); // Initial call
+    }
+    
+    // Toggle content fields based on resource type
+    const resourceType = document.getElementById('id_resource_type');
+    const textFields = document.getElementById('text-fields');
+    const mediaFields = document.getElementById('media-fields');
+    const videoFields = document.getElementById('video-fields');
+    const mathPanelContainer = document.getElementById('math-panel-container');
+    
+    function toggleContentFields() {
+        // Hide all first
+        if (textFields) textFields.style.display = 'none';
+        if (mediaFields) mediaFields.style.display = 'none';
+        if (videoFields) videoFields.style.display = 'none';
+        if (mathPanelContainer) mathPanelContainer.style.display = 'none';
+        
+        // Show relevant fields
+        if (resourceType.value === 'text') {
+            textFields.style.display = 'block';
+            mathPanelContainer.style.display = 'block';
+        } else if (['video', 'audio', 'pdf'].includes(resourceType.value)) {
+            mediaFields.style.display = 'block';
+            
+            if (resourceType.value === 'video') {
+                videoFields.style.display = 'block';
+            }
+        }
+    }
+    
+    if (resourceType) {
+        resourceType.addEventListener('change', toggleContentFields);
+        toggleContentFields(); // Initial call
+    }
+    
+    // Math formula modal
+    const mathBtn = document.getElementById('math-btn');
+    const mathModal = document.getElementById('math-modal');
+    const mathClose = mathModal.querySelector('.close');
+    const mathInput = document.getElementById('math-input');
+    const mathPreviewModal = document.getElementById('math-preview-modal');
+    const insertMathModalBtn = document.getElementById('insert-math-modal');
+    
+    if (mathBtn) {
+        mathBtn.addEventListener('click', function() {
+            mathModal.style.display = 'block';
+        });
+    }
+    
+    if (mathClose) {
+        mathClose.addEventListener('click', function() {
+            mathModal.style.display = 'none';
+        });
+    }
+    
+    if (mathInput) {
+        mathInput.addEventListener('input', function() {
+            mathPreviewModal.innerHTML = `Preview: \\( ${mathInput.value} \\)`;
+            MathJax.typesetPromise([mathPreviewModal]).catch(err => console.log(err));
+        });
+    }
+    
+    if (insertMathModalBtn) {
+        insertMathModalBtn.addEventListener('click', function() {
+            const textarea = document.getElementById('id_content');
+            const formula = `$$${mathInput.value}$$`;
+            const cursorPos = textarea.selectionStart;
+            const text = textarea.value;
+            
+            textarea.value = text.substring(0, cursorPos) + formula + text.substring(cursorPos);
+            mathInput.value = '';
+            mathModal.style.display = 'none';
+        });
+    }
+    
+    // Code block modal
+    const codeBtn = document.getElementById('code-btn');
+    const codeModal = document.getElementById('code-modal');
+    const codeClose = codeModal.querySelector('.close');
+    const codeLanguage = document.getElementById('code-language');
+    const codeContent = document.getElementById('code-content');
+    const insertCodeBtn = document.getElementById('insert-code');
+    
+    if (codeBtn) {
+        codeBtn.addEventListener('click', function() {
+            codeModal.style.display = 'block';
+        });
+    }
+    
+    if (codeClose) {
+        codeClose.addEventListener('click', function() {
+            codeModal.style.display = 'none';
+        });
+    }
+    
+    if (insertCodeBtn) {
+        insertCodeBtn.addEventListener('click', function() {
+            const textarea = document.getElementById('id_content');
+            const lang = codeLanguage.value;
+            const code = codeContent.value;
+            const codeBlock = `\`\`\`${lang}\n${code}\n\`\`\``;
+            const cursorPos = textarea.selectionStart;
+            const text = textarea.value;
+            
+            textarea.value = text.substring(0, cursorPos) + codeBlock + text.substring(cursorPos);
+            codeContent.value = '';
+            codeModal.style.display = 'none';
+        });
+    }
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === mathModal) {
+            mathModal.style.display = 'none';
+        }
+        if (event.target === codeModal) {
+            codeModal.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

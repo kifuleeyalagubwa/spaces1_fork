@@ -1,0 +1,117 @@
+<!-- templates/trends/institution_settings.html -->
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Settings - {{ institution.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <ion-icon name="settings-outline"></ion-icon>
+                        Institution Settings - {{ institution.name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <h6 class="mb-3">Basic Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.institution_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.description|as_crispy_field }}
+                        
+                        <h6 class="mb-3 mt-4">Contact Information</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.email|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.phone|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.website|as_crispy_field }}
+                        {{ form.address|as_crispy_field }}
+                        {{ form.country|as_crispy_field }}
+                        
+                        <h6 class="mb-3 mt-4">Domain Settings</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.subdomain|as_crispy_field }}
+                                <div class="form-text">
+                                    Current URL: http://{{ institution.subdomain }}.127.0.0.1:8000
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.custom_domain|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <h6 class="mb-3 mt-4">Branding</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.logo|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.banner|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.primary_color|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.secondary_color|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <h6 class="mb-3 mt-4">Access Control</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.allow_user_registration|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.require_domain_email|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.allowed_email_domains|as_crispy_field }}
+                        
+                        <h6 class="mb-3 mt-4">Limits</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.user_limit|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.storage_quota_mb|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.expiry_date|as_crispy_field }}
+                        
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <ion-icon name="save-outline"></ion-icon>
+                                Save Settings
+                            </button>
+                            <a href="{% url 'institution_dashboard' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

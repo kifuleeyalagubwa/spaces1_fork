@@ -1,0 +1,122 @@
+{% extends "study/base.html" %}
+
+{% block study_title %}{{ resource.title }}{% endblock %}
+
+{% block study_actions %}
+{% if user == resource.creator %}
+<a href="{% url 'study:resource_edit' resource.id %}" class="btn btn-outline">
+    <ion-icon name="create-outline"></ion-icon> Edit
+</a>
+{% endif %}
+<a href="{% url 'study:resource_list' %}" class="btn btn-outline">
+    <ion-icon name="arrow-back-outline"></ion-icon> Back
+</a>
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link href="https://vjs.zencdn.net/8.0.4/video-js.css" rel="stylesheet" />
+{% endblock %}
+
+{% block study_content %}
+<div class="video-resource">
+    <div class="video-player-container">
+        <video
+            id="study-video"
+            class="video-js vjs-big-play-centered"
+            controls
+            preload="auto"
+            width="100%"
+            height="600"
+            {% if resource.thumbnail %}
+                poster="{{ resource.thumbnail.url }}"
+            {% endif %}
+            data-setup='{}'
+        >
+            <source src="{{ resource.file.url }}" type="video/mp4" />
+            <!-- ... -->
+        </video>
+        
+        <div class="video-controls">
+            <button class="btn btn-outline speed-control" data-speed="0.75">0.75x</button>
+            <button class="btn btn-outline speed-control active" data-speed="1">1x</button>
+            <button class="btn btn-outline speed-control" data-speed="1.25">1.25x</button>
+            <button class="btn btn-outline speed-control" data-speed="1.5">1.5x</button>
+            <button class="btn btn-outline speed-control" data-speed="2">2x</button>
+        </div>
+    </div>
+          
+    
+    <div class="resource-info">
+        <h2>{{ resource.title }}</h2>
+        <div class="resource-meta">
+            <div class="meta-item">
+                <ion-icon name="person-outline"></ion-icon>
+                <span>{{ resource.creator.username }}</span>
+            </div>
+            <div class="meta-item">
+                <ion-icon name="calendar-outline"></ion-icon>
+                <span>{{ resource.created_at|date:"M d, Y" }}</span>
+            </div>
+            <div class="meta-item">
+                <ion-icon name="time-outline"></ion-icon>
+                <span>{{ resource.duration }} min</span>
+            </div>
+        </div>
+        
+        <div class="resource-description">
+            {{ resource.description }}
+        </div>
+        
+        <div class="resource-tags">
+            {% for subject in resource.subjects.all %}
+            <span class="tag subject">{{ subject.name }}</span>
+            {% endfor %}
+            {% for topic in resource.topics.all %}
+            <span class="tag topic">{{ topic.name }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    
+    {% if resource.transcript %}
+    <div class="transcript-section">
+        <h3>Transcript</h3>
+        <div class="transcript-content">
+            {{ resource.transcript|linebreaks }}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if resource.access_level == 'premium' %}
+    <div class="access-notice">
+        <ion-icon name="lock-closed-outline"></ion-icon>
+        <p>This is a premium resource. You need to purchase access to view the full video.</p>
+        <button class="btn btn-primary">Purchase for {{ resource.access_cost }} credits</button>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://vjs.zencdn.net/8.0.4/video.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const player = videojs('study-video');
+    const speedControls = document.querySelectorAll('.speed-control');
+    
+    speedControls.forEach(control => {
+        control.addEventListener('click', function() {
+            const speed = parseFloat(this.getAttribute('data-speed'));
+            
+            // Update active button
+            speedControls.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Set playback rate
+            player.playbackRate(speed);
+        });
+    });
+});
+</script>
+{% endblock %}

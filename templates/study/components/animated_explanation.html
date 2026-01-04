@@ -1,0 +1,129 @@
+<div class="animated-explanation">
+    <div class="animation-header">
+        <h2>{{ animation.title }}</h2>
+        <p>{{ animation.description }}</p>
+    </div>
+    
+    <div class="animation-container" id="animation-{{ animation.id }}">
+        <!-- Animation will be rendered here by JavaScript -->
+    </div>
+    
+    <div class="animation-controls">
+        <button class="btn btn-outline" id="play-btn">
+            <ion-icon name="play-outline"></ion-icon> Play
+        </button>
+        <button class="btn btn-outline" id="pause-btn">
+            <ion-icon name="pause-outline"></ion-icon> Pause
+        </button>
+        <button class="btn btn-outline" id="reset-btn">
+            <ion-icon name="refresh-outline"></ion-icon> Reset
+        </button>
+        
+        <div class="speed-control">
+            <label>Speed:</label>
+            <input type="range" min="0.25" max="2" step="0.25" value="1" id="speed-slider">
+            <span id="speed-value">1x</span>
+        </div>
+    </div>
+    
+    <div class="explanation-steps">
+        {% for step in animation.steps %}
+        <div class="explanation-step">
+            <div class="step-header">
+                <div class="step-number">{{ forloop.counter }}</div>
+                <h4>{{ step.title }}</h4>
+            </div>
+            <div class="step-content">
+                <p>{{ step.description }}</p>
+                
+                {% if step.formula %}
+                <div class="step-formula">
+                    \[ {{ step.formula }} \]
+                </div>
+                {% endif %}
+                
+                {% if step.code %}
+                <div class="step-code">
+                    <pre><code class="language-{{ step.language }}">{{ step.code }}</code></pre>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const animationId = 'animation-{{ animation.id }}';
+    const container = document.getElementById(`animation-${animationId}`);
+    
+    // Initialize animation (pseudocode)
+    // In a real implementation, this would use an animation library like GSAP or Anime.js
+    container.innerHTML = `
+        <canvas id="animation-canvas" width="800" height="500"></canvas>
+    `;
+    
+    const canvas = document.getElementById('animation-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Animation state
+    let animationState = {
+        playing: false,
+        progress: 0,
+        speed: 1,
+        // ... other state properties
+    };
+    
+    // Animation controls
+    document.getElementById('play-btn').addEventListener('click', () => {
+        animationState.playing = true;
+        animate();
+    });
+    
+    document.getElementById('pause-btn').addEventListener('click', () => {
+        animationState.playing = false;
+    });
+    
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        animationState.playing = false;
+        animationState.progress = 0;
+        render();
+    });
+    
+    document.getElementById('speed-slider').addEventListener('input', function() {
+        animationState.speed = parseFloat(this.value);
+        document.getElementById('speed-value').textContent = `${this.value}x`;
+    });
+    
+    function animate() {
+        if (!animationState.playing) return;
+        
+        // Update animation state
+        animationState.progress += 0.01 * animationState.speed;
+        
+        if (animationState.progress >= 1) {
+            animationState.playing = false;
+            animationState.progress = 1;
+        }
+        
+        // Render current state
+        render();
+        
+        // Continue animation loop
+        requestAnimationFrame(animate);
+    }
+    
+    function render() {
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Render animation based on current progress
+        // This would be specific to the animation content
+        // Example: drawing shapes, paths, etc.
+    }
+    
+    // Initial render
+    render();
+});
+</script>

@@ -1,0 +1,81 @@
+<div class="code-template">
+    <div class="code-header">
+        <span class="language-badge">{{ code.language }}</span>
+        <h3>{{ code.title }}</h3>
+    </div>
+    
+    <div class="code-description">
+        <p>{{ code.description }}</p>
+    </div>
+    
+    <div class="code-content">
+        <pre><code class="language-{{ code.language }}">{{ code.content }}</code></pre>
+    </div>
+    
+    <div class="code-explanation">
+        <h4>Explanation</h4>
+        <div class="explanation-steps">
+            {% for step in code.steps %}
+            <div class="explanation-step">
+                <div class="step-number">{{ forloop.counter }}</div>
+                <div class="step-content">{{ step|safe }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if code.complexity %}
+        <div class="complexity-analysis">
+            <h5>Complexity Analysis</h5>
+            <p><strong>Time Complexity:</strong> {{ code.complexity.time }}</p>
+            <p><strong>Space Complexity:</strong> {{ code.complexity.space }}</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if code.variations %}
+    <div class="code-variations">
+        <h4>Variations</h4>
+        <div class="variation-tabs">
+            {% for variation in code.variations %}
+            <button class="variation-tab {% if forloop.first %}active{% endif %}" 
+                    data-target="variation-{{ forloop.counter }}">
+                {{ variation.title }}
+            </button>
+            {% endfor %}
+        </div>
+        
+        <div class="variation-content">
+            {% for variation in code.variations %}
+            <div id="variation-{{ forloop.counter }}" class="variation-item" 
+                 {% if not forloop.first %}style="display:none;"{% endif %}>
+                <pre><code class="language-{{ variation.language }}">{{ variation.content }}</code></pre>
+                <p>{{ variation.description }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.variation-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            
+            // Hide all content
+            document.querySelectorAll('.variation-item').forEach(item => {
+                item.style.display = 'none';
+            });
+            
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            // Show target content and mark tab active
+            document.getElementById(targetId).style.display = 'block';
+            this.classList.add('active');
+        });
+    });
+});
+</script>

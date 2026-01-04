@@ -1,0 +1,150 @@
+### Analysis of `trends` Models Fields
+
+Let me explain the purpose and functionality of each model and its fields in your education social app:
+
+---
+
+### **1. UUIDMixin**
+- **id**: UUID primary key for all models
+- **Purpose**: Provides a universally unique identifier for each database record, enhancing security and scalability compared to sequential IDs.
+
+---
+
+### **2. User Model**
+- **is_verified**: Email/account verification status
+- **credits**: Virtual currency system for premium features
+- **uid**: Short user identifier (usr-XXXX)
+- **Special Logic**: Superusers are auto-verified on save
+
+---
+
+### **3. Profile Model**
+- **role**: User type (participant/setter/institution/admin)
+- **bio**: Personal introduction
+- **profile_picture**: Avatar image
+- **date_of_birth**: For age-related features
+- **address/city/country**: Location data
+- **website**: Personal/institutional link
+- **Institution Fields**: Only relevant for institutional accounts
+- **Special Logic**: Auto-promotes to setter when creating trends
+
+---
+
+### **4. EducationalSystem Model**
+- **name**: Curriculum system name (e.g., "CBSE", "IB")
+- **description**: System overview
+- **created_by**: User who added the system
+- **is_approved**: Moderation flag for user-submitted systems
+- **created_at**: Timestamp of creation
+
+---
+
+### **5. GradeLevel Model**
+- **system**: Link to educational system
+- **name**: Grade name (e.g., "Grade 10")
+- **order**: Sorting sequence
+- **parent**: Hierarchical levels (e.g., Elementary → Grade 1)
+- **is_approved**: Content moderation flag
+
+---
+
+### **6. Subject Model**
+- **grade_level**: Associated grade
+- **name**: Subject name (e.g., "Mathematics")
+- **order**: Display sequence
+- **is_approved**: Moderation status
+
+---
+
+### **7. Topic Model**
+- **subject**: Parent subject
+- **name**: Topic name (e.g., "Trigonometry")
+- **order**: Sorting order within subject
+- **is_approved**: Content approval flag
+
+---
+
+### **8. SkillDomain Model**
+- **name**: Skill category (e.g., "Critical Thinking")
+- **description**: Domain explanation
+- **is_approved**: User-generated content approval
+
+---
+
+### **9. SkillSubdomain Model**
+- **domain**: Parent skill category
+- **name**: Specific skill (e.g., "Problem Solving")
+- **is_approved**: Content moderation
+
+---
+
+### **10. Institution Model**
+- **name**: Organization name
+- **verified**: Official verification status
+- **admin**: Primary administrator
+- **preferred_system**: Default curriculum system
+- **is_approved**: Moderation flag
+
+---
+
+### **11. Trend Model (Core Functionality)**
+- **title**: Space name/title
+- **description**: Space purpose/details
+- **creator**: Space owner
+- **access_level**: Visibility control (public/private/institutional)
+- **space_type**: Primary use case (study/interview/meeting)
+- **Academic Associations**: 
+  - academic_levels: Target grades
+  - subjects: Related subjects
+  - topics: Specific topics
+  - skill_domains: Skills practiced
+- **is_approved**: Content moderation
+- **Special Logic**:
+  - Requires verification for institutional spaces
+  - Auto-approves admin-created trends
+
+---
+
+### **Key Relationships**
+1. **Education Hierarchy**:  
+   `EducationalSystem → GradeLevel → Subject → Topic`
+
+2. **Skill Taxonomy**:  
+   `SkillDomain → SkillSubdomain`
+
+3. **User Journey**:  
+   `User → Profile → Created Trends/Systems`
+
+4. **Trend Associations**:  
+   `Trend → [GradeLevels, Subjects, Topics, SkillDomains]`
+
+---
+
+### **Settings File Insights**
+1. **ASGI Setup**:  
+   - `daphne` and `channels` enable real-time features (chat/video)
+   - Redis channel layer for WebSocket management
+
+2. **Custom User Model**:  
+   `AUTH_USER_MODEL = 'trends.User'` replaces default auth
+
+3. **Internationalization**:  
+   `phonenumber_field` and `django_countries` for global users
+
+4. **Media Handling**:  
+   User-uploaded content (profile/institution images)
+
+5. **Moderation System**:  
+   `is_approved` flags throughout models support content review
+
+---
+
+### **Core Functionality**
+Your app enables:
+1. **Collaborative Spaces**: Study groups, interview prep, meetings
+2. **Curriculum Management**: User-generated education systems
+3. **Skill-Based Learning**: Organized skill development
+4. **Institutional Features**: Verified organization accounts
+5. **Monetization**: Credit system for premium features
+
+The models support complex educational taxonomies while maintaining flexibility through user-generated content with approval workflows. The real-time capabilities suggest features like live collaborative spaces are central to the app experience.

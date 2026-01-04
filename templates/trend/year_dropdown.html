@@ -1,0 +1,6 @@
+<option value="">---------</option>
+{% for year in years %}
+<option value="{{ year.id }}" {% if form.academic_year.value == year.id %}selected{% endif %}>
+    {{ year.name }}
+</option>
+{% endfor %}

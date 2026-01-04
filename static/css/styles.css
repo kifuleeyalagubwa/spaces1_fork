@@ -1,0 +1,250 @@
+/* === GLOBAL STYLES === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+    background-color: var(--secondary);
+    color: var(--text-dark);
+    min-height: 100vh;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 100px;
+    line-height: 1.6;
+}
+
+/* === TOP NAVIGATION BAR === */
+.top-navbar {
+    background-color: var(--primary);
+    color: var(--text-dark);
+    padding: 0.7rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: 60px;
+}
+
+.top-navbar .brand {
+    font-size: 1.4rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--accent);
+}
+
+.top-navbar .brand ion-icon {
+    font-size: 1.5rem;
+}
+
+.top-navbar .user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.top-navbar .user-info .username {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 0.95rem;
+}
+
+.top-navbar .auth-links {
+    display: flex;
+    gap: 8px;
+}
+
+/* === BUTTON STYLES === */
+.btn {
+    padding: 8px 16px;
+    border-radius: 50px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid transparent;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background-color: var(--accent);
+    color: var(--primary);
+    box-shadow: 0 4px 6px rgba(139, 0, 0, 0.15);
+}
+
+.btn-primary:hover {
+    background-color: #700000;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(139, 0, 0, 0.2);
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+.btn-outline:hover {
+    background-color: rgba(139, 0, 0, 0.05);
+}
+
+/* === LAYOUT CONTAINERS === */
+.container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    flex: 1;
+    padding-top: 70px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.content {
+    background-color: var(--primary);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 30px;
+    margin-top: 20px;
+}
+
+/* === CARD STYLES === */
+.card {
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.card-title {
+    font-size: 1.2rem;
+    color: var(--accent);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.feature-card {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin: 15px 0;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+
+.feature-card ion-icon {
+    font-size: 2.5rem;
+    color: var(--accent);
+    margin-bottom: 10px;
+}
+
+/* === FORM STYLES === */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+
+/* === ALERT MESSAGES === */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: var(--radius-sm);
+}
+
+.alert-success {
+    background-color: var(--light-green);
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* === RESPONSIVE DESIGN === */
+@media (max-width: 768px) {
+    .top-navbar {
+        padding: 0.7rem 1rem;
+    }
+    
+    .top-navbar .brand {
+        font-size: 1.2rem;
+    }
+    
+    .user-info {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+    
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .content {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-navbar .brand span {
+        display: none;
+    }
+    
+    .top-navbar .auth-links .btn span {
+        display: none;
+    }
+    
+    .top-navbar .auth-links .btn ion-icon {
+        margin-right: 0;
+    }
+
+    .magic-nav {
+        max-width: 100%;
+        border-radius: 0;
+    }
+}

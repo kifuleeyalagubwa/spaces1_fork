@@ -1,0 +1,49 @@
+{% extends "exams/question_form.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">
+        <ion-icon name="add-outline"></ion-icon>
+        {% if object %}Update Text Question{% else %}Add New Text Question{% endif %}
+    </h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="mb-4">
+            <label class="block mb-2 font-medium">Question Text</label>
+            {{ form.text }}
+        </div>
+        
+        <div class="mb-4">
+            <label class="block mb-2 font-medium">Points</label>
+            {{ form.points }}
+        </div>
+        
+        <div class="mb-4">
+            <label class="block mb-2 font-medium">Order</label>
+            {{ form.order }}
+        </div>
+        
+        <div class="mb-4">
+            <label class="block mb-2 font-medium">Reference Answer (Optional)</label>
+            {{ form.reference_answer }}
+            <p class="text-sm text-gray-500 mt-1">This will be shown to graders</p>
+        </div>
+        
+        <div class="mb-4">
+            <label class="block mb-2 font-medium">Maximum Answer Length</label>
+            {{ form.max_length }}
+        </div>
+        
+        <div class="mt-6">
+            <button type="submit" class="btn btn-primary">
+                {% if object %}Update{% else %}Create{% endif %} Question
+            </button>
+            <a href="{% url 'exams:exam_set_detail' pk=exam_set.id %}" class="btn btn-outline ml-3">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

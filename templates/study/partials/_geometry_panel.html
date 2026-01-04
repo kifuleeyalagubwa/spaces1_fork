@@ -1,0 +1,30 @@
+<div class="geometry-panel">
+    <div class="geometry-toolbar">
+        <button data-shape="point" class="btn btn-outline">Point</button>
+        <button data-shape="line" class="btn btn-outline">Line</button>
+        <button data-shape="circle" class="btn btn-outline">Circle</button>
+        <button data-shape="triangle" class="btn btn-outline">Triangle</button>
+        <button data-shape="rectangle" class="btn btn-outline">Rectangle</button>
+        <button data-shape="polygon" class="btn btn-outline">Polygon</button>
+    </div>
+    
+    <div class="geometry-canvas-container">
+        <canvas id="geometry-canvas"></canvas>
+    </div>
+    
+    <div class="geometry-properties">
+        <div class="form-group">
+            <label>Properties:</label>
+            <div id="shape-properties"></div>
+        </div>
+    </div>
+    
+    <div class="geometry-actions">
+        <button id="insert-geometry" class="btn btn-outline">
+            <ion-icon name="arrow-forward-outline"></ion-icon> Insert
+        </button>
+        <button id="clear-geometry" class="btn btn-link">
+            <ion-icon name="trash-outline"></ion-icon> Clear
+        </button>
+    </div>
+</div>

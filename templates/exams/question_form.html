@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if object %}Update Question{% else %}Add Question{% endif %} - Uganda eLearning{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">
+        <ion-icon name="add-outline"></ion-icon>
+        {% if object %}Update Question{% else %}Add New Question{% endif %}
+    </h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="space-y-4">
+            {{ form.as_p }}
+        </div>
+        
+        <div class="mt-6">
+            <button type="submit" class="btn btn-primary">
+                {% if object %}Update{% else %}Create{% endif %} Question
+            </button>
+            <a href="{% url 'exams:exam_set_detail' pk=exam_set.id %}" class="btn btn-outline ml-3">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

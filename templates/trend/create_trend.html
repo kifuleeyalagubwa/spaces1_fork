@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Create New Space</h2>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Create Space
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">Space Type Guide</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-journal-bookmark"></i> Study Space
+                        </div>
+                        <div class="card-body">
+                            <p>Create a collaborative learning environment for:</p>
+                            <ul>
+                                <li>Academic subjects</li>
+                                <li>Exam preparation</li>
+                                <li>Group projects</li>
+                                <li>Homework help</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-success">
+                        <div class="card-header bg-success text-white">
+                            <i class="bi bi-people"></i> Interview Space
+                        </div>
+                        <div class="card-body">
+                            <p>Practice and prepare for interviews:</p>
+                            <ul>
+                                <li>Mock interviews</li>
+                                <li>Career preparation</li>
+                                <li>Resume reviews</li>
+                                <li>Job search strategies</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <i class="bi bi-chat-dots"></i> Meeting Space
+                        </div>
+                        <div class="card-body">
+                            <p>Collaborate and connect:</p>
+                            <ul>
+                                <li>Group discussions</li>
+                                <li>Project planning</li>
+                                <li>Study group meetings</li>
+                                <li>Academic conferences</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

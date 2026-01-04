@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Register Institution - Uganda eLearning{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <ion-icon name="business-outline"></ion-icon>
+                        Register Your Institution
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <h4 class="mb-3">Institution Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.subdomain|as_crispy_field }}
+                                <small class="form-text text-muted">
+                                    Your institution will be accessible at: https://{{ form.subdomain.value }}.uganda-elearning.org
+                                </small>
+                            </div>
+                        </div>
+                        
+                        {{ form.website|as_crispy_field }}
+                        {{ form.description|as_crispy_field }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.institution_type|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.custom_curriculum }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <h4 class="mb-3">Administrator Information</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.admin_first_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.admin_last_name|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.admin_email|as_crispy_field }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.password|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.password_confirm|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="form-check mb-4">
+                            {{ form.agree_to_terms }}
+                            <label class="form-check-label" for="{{ form.agree_to_terms.id_for_label }}">
+                                I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <ion-icon name="business-outline"></ion-icon>
+                            Register Institution
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle curriculum field based on custom_curriculum checkbox
+        const customCurriculumCheckbox = document.getElementById('id_custom_curriculum');
+        const curriculumField = document.getElementById('div_id_curriculum');
+        
+        function toggleCurriculumField() {
+            if (customCurriculumCheckbox.checked) {
+                curriculumField.style.display = 'none';
+            } else {
+                curriculumField.style.display = 'block';
+            }
+        }
+        
+        customCurriculumCheckbox.addEventListener('change', toggleCurriculumField);
+        toggleCurriculumField(); // Initial state
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/study.css' %}">
+<!-- Math rendering support -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<!-- Code highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+{% endblock %}
+
+{% block content %}
+<div class="study-container">
+    <div class="study-header">
+        <h1>
+            <ion-icon name="library-outline"></ion-icon>
+            {% block study_title %}Study Resources{% endblock %}
+        </h1>
+        
+        <div class="study-actions">
+            {% block study_actions %}{% endblock %}
+        </div>
+    </div>
+    
+    <div class="study-content">
+        {% block study_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

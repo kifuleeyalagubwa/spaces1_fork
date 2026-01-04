@@ -1,0 +1,188 @@
+/* Math Panel Styles */
+.math-panel {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.math-toolbar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.toolbar-section {
+    display: flex;
+    gap: 8px;
+    background: #e9ecef;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.math-toolbar button {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.math-toolbar button:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+    border-color: #8b0000;
+}
+
+.math-symbol {
+    font-size: 1.2rem;
+    color: #495057;
+}
+
+.math-input-group {
+    margin-bottom: 20px;
+}
+
+.input-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#plain-math-input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+#convert-math {
+    padding: 0 20px;
+    white-space: nowrap;
+}
+
+.preview-container {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    min-height: 60px;
+}
+
+.preview-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 8px;
+}
+
+.math-preview {
+    font-size: 1.2rem;
+    min-height: 40px;
+    overflow-x: auto;
+}
+
+.math-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.help-panel {
+    background: #e9ecef;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    display: none;
+}
+
+.help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.help-item {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.help-item .example {
+    font-family: monospace;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    color: #8b0000;
+}
+
+.help-item .explanation {
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 25px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.modal .close {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #777;
+}
+
+.modal .close:hover {
+    color: #000;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .toolbar-section {
+        flex-wrap: wrap;
+    }
+    
+    .input-container {
+        flex-direction: column;
+    }
+    
+    #convert-math {
+        padding: 10px;
+    }
+    
+    .help-grid {
+        grid-template-columns: 1fr;
+    }
+}

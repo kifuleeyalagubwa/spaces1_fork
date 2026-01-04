@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Uganda eLearning{% endblock %}</title>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    
+    <!-- Ion Icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    
+    <!-- Inline Styles for Critical Elements -->
+    <style>
+        /* === ROOT VARIABLES === */
+        :root {
+            --primary: #ffffff;       /* White */
+            --secondary: #f0f2f5;     /* Light Gray */
+            --accent: #8b0000;        /* Maroon */
+            --light-green: #e6f7ee;   /* Light Green */
+            --text-dark: #333333;     /* Dark text */
+            --text-light: #777777;    /* Light text */
+            --transition: all 0.3s ease;
+            --shadow-sm: 0 2px 6px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 20px rgba(0,0,0,0.12);
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+        }
+
+        /* === MAGIC NAVIGATION === */
+        .magic-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 500px;
+            height: 80px;
+            background: var(--primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.1);
+            overflow: visible;
+            z-index: 1000;
+            left: 50%;
+            transform: translateX(-50%);
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .magic-nav ul {
+            display: flex;
+            width: 100%;
+            position: relative;
+            padding: 0 10px;
+            margin: 0;
+        }
+        
+        .magic-nav ul li {
+            position: relative;
+            list-style: none;
+            flex: 1;
+            height: 80px;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .magic-nav ul li a {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            width: 100%;
+            text-align: center;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        
+        .magic-nav ul li a .icon {
+            position: relative;
+            display: block;
+            line-height: 80px;
+            font-size: 1.7em;
+            text-align: center;
+            transition: 0.5s;
+            color: var(--text-light);
+            z-index: 10;
+        }
+        
+        .magic-nav ul li.active a .icon {
+            transform: translateY(-40px);
+            color: var(--primary);
+        }
+        
+        .magic-nav ul li a .text {
+            position: absolute;
+            color: var(--text-light);
+            font-weight: 600;
+            font-size: 0.75em;
+            letter-spacing: 0.05em;
+            transition: 0.3s;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .magic-nav ul li.active a .text {
+            opacity: 1;
+            transform: translateY(10px);
+            color: var(--primary);
+        }
+        
+        .magic-indicator {
+            position: absolute;
+            top: -40px;
+            width: 70px;
+            height: 70px;
+            background: var(--accent);
+            border-radius: 50%;
+            border: 6px solid var(--secondary);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1;
+            left: 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .magic-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -22px;
+            width: 20px;
+            height: 20px;
+            background: transparent;
+            border-top-right-radius: 20px;
+            box-shadow: 0 -10px 0 0 var(--secondary);
+        }
+        
+        .magic-indicator::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -22px;
+            width: 20px;
+            height: 20px;
+            background: transparent;
+            border-top-left-radius: 20px;
+            box-shadow: 0 -10px 0 0 var(--secondary);
+        }
+    </style>
+    
+    {% block extra_css %}
+    <!-- Extra CSS for specific pages -->
+    {% endblock %}
+</head>
+<body>
+    <!-- === TOP NAVIGATION BAR === -->
+    <nav class="top-navbar">
+        <div class="brand">
+            <ion-icon name="school-outline"></ion-icon>
+            <span>Uganda eLearning</span>
+            {% if user.is_staff %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'admin_dashboard' %}">
+                    <i class="bi bi-speedometer2"></i> Admin Dashboard
+                </a>
+            </li>
+            {% endif %}            
+        </div>
+        
+        <div class="user-info">
+            {% if user.is_authenticated %}
+                <span class="username">{{ user.username }}</span>
+                <div class="auth-links">
+                    <a href="{% url 'edit_profile' %}" class="btn btn-outline">
+                        <ion-icon name="person-outline"></ion-icon>
+                        <span>Profile</span>
+                    </a>
+                    <a href="{% url 'logout' %}" class="btn btn-primary">
+                        <ion-icon name="log-out-outline"></ion-icon>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            {% else %}
+                <div class="auth-links">
+                    <a href="{% url 'login' %}" class="btn btn-outline">
+                        <ion-icon name="log-in-outline"></ion-icon>
+                        <span>Login</span>
+                    </a>
+                    <a href="{% url 'register' %}" class="btn btn-primary">
+                        <ion-icon name="person-add-outline"></ion-icon>
+                        <span>Register</span>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </nav>
+    
+    <!-- === MAIN CONTENT AREA === -->
+    <div class="container">
+        <div class="content">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            {% block content %}
+            <!-- Page content will be injected here -->
+            <div class="card">
+                <h2 class="card-title">
+                    <ion-icon name="rocket-outline"></ion-icon>
+                    Welcome to Uganda eLearning
+                </h2>
+                <p>This is your dashboard. Here you can access all educational resources and tools.</p>
+                <p>Select an option from the navigation below to get started.</p>
+                
+                <div class="features">
+                    <div class="feature-card">
+                        <ion-icon name="book-outline"></ion-icon>
+                        <h3>Study Materials</h3>
+                        <p>Access textbooks, notes, and learning resources.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <ion-icon name="reader-outline"></ion-icon>
+                        <h3>Exams & Quizzes</h3>
+                        <p>Test your knowledge with practice exams.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <ion-icon name="people-outline"></ion-icon>
+                        <h3>Collaborate</h3>
+                        <p>Join study groups and collaborate with peers.</p>
+                    </div>
+                </div>
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+    
+    <!-- === MAGIC NAVIGATION BAR (AUTHENTICATED USERS) === -->
+    {% if user.is_authenticated %}
+    <nav class="magic-nav">
+        <ul>
+            <li class="list {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-index="0">
+                <a href="{% url 'dashboard' %}">
+                    <span class="icon"><ion-icon name="home-outline"></ion-icon></span>
+                    <span class="text">Home</span>
+                </a>
+            </li>
+            <li class="list {% if 'study' in request.resolver_match.namespace %}active{% endif %}" data-index="1">
+                <a href="{% url 'study:resource_list' %}">
+                    <span class="icon"><ion-icon name="library-outline"></ion-icon></span>
+                    <span class="text">Study</span>
+                </a>
+            </li>
+            <li class="list {% if 'exams' in request.resolver_match.app_names %}active{% endif %}" data-index="2">
+                <a href="{% url 'exams:exam_set_list' %}">
+                    <span class="icon"><ion-icon name="reader-outline"></ion-icon></span>
+                    <span class="text">Exams</span>
+                </a>
+            </li>
+            <li class="list {% if request.resolver_match.url_name == 'edit_profile' %}active{% endif %}" data-index="3">
+                <a href="{% url 'edit_profile' %}">
+                    <span class="icon"><ion-icon name="person-outline"></ion-icon></span>
+                    <span class="text">Profile</span>
+                </a>
+            </li>
+        </ul>
+        <div class="magic-indicator" id="magicIndicator"></div>
+    </nav>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const listItems = document.querySelectorAll('.magic-nav .list');
+            const indicator = document.getElementById('magicIndicator');
+            const nav = document.querySelector('.magic-nav');
+            
+            if (indicator && nav && listItems.length) {
+                function updateIndicatorPosition() {
+                    const activeItem = document.querySelector('.magic-nav .list.active');
+                    if (!activeItem) return;
+                    
+                    const navRect = nav.getBoundingClientRect();
+                    const itemRect = activeItem.getBoundingClientRect();
+                    const centerPosition = (itemRect.left - navRect.left) + (itemRect.width / 2) - (indicator.offsetWidth / 2);
+                    
+                    indicator.style.left = centerPosition + 'px';
+                }
+                
+                updateIndicatorPosition();
+                window.addEventListener('resize', updateIndicatorPosition);
+                
+                listItems.forEach(item => {
+                    item.addEventListener('click', function(e) {
+                        listItems.forEach(i => i.classList.remove('active'));
+                        this.classList.add('active');
+                        updateIndicatorPosition();
+                    });
+                });
+            }
+        });
+    </script>
+    {% endif %}
+    
+    {% block extra_js %}
+    <!-- Extra JavaScript for specific pages -->
+    {% endblock %}
+</body>
+</html>

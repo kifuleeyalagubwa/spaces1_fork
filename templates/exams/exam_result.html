@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Exam Result - Uganda eLearning{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .result-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    
+    .score-display {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .score-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        text-align: center;
+        min-width: 200px;
+    }
+    
+    .score-value {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    
+    .score-label {
+        font-size: 1rem;
+        color: #666;
+    }
+    
+    .correct-score {
+        color: #28a745;
+    }
+    
+    .incorrect-score {
+        color: #dc3545;
+    }
+    
+    .attempt-info {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .info-item ion-icon {
+        font-size: 1.5rem;
+        color: #8b0000;
+    }
+    
+    .question-review {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .question-item {
+        padding: 25px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .question-item:last-child {
+        border-bottom: none;
+    }
+    
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .question-number {
+        font-weight: 600;
+        color: #8b0000;
+    }
+    
+    .question-status {
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    .status-correct {
+        background: #e8f5e9;
+        color: #28a745;
+    }
+    
+    .status-incorrect {
+        background: #ffebee;
+        color: #dc3545;
+    }
+    
+    .status-pending {
+        background: #e3f2fd;
+        color: #2196f3;
+    }
+    
+    .user-answer {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+    
+    .correct-answer {
+        background: #e8f5e9;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+    
+    .feedback-box {
+        background: #fff8e1;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        border-radius: 0 8px 8px 0;
+        margin-top: 15px;
+    }
+    
+    .submission-method {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin-left: 10px;
+    }
+    
+    .auto-submitted {
+        background: #ffebee;
+        color: #dc3545;
+    }
+    
+    .manual-submitted {
+        background: #e8f5e9;
+        color: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="result-container">
+    <div class="result-header">
+        <h1>Exam Results: {{ attempt.exam_set.title }}</h1>
+        <p class="text-muted">
+            Completed on {{ attempt.end_time|date:"M d, Y H:i" }}
+            {% if attempt.status == 'AUTO_SUBMITTED' %}
+                <span class="submission-method auto-submitted">Auto-Submitted</span>
+            {% else %}
+                <span class="submission-method manual-submitted">Manually Submitted</span>
+            {% endif %}
+        </p>
+    </div>
+    
+    <div class="score-display">
+        <div class="score-card">
+            <div class="score-value">{{ attempt.final_score|floatformat:1 }}%</div>
+            <div class="score-label">Final Score</div>
+        </div>
+        
+        <div class="score-card">
+            <div class="score-value correct-score">{{ correct_answers }}</div>
+            <div class="score-label">Correct Answers</div>
+        </div>
+        
+        <div class="score-card">
+            <div class="score-value incorrect-score">{{ incorrect_answers }}</div>
+            <div class="score-label">Incorrect Answers</div>
+        </div>
+    </div>
+    
+    <div class="attempt-info">
+        <div class="info-grid">
+            <div class="info-item">
+                <ion-icon name="person-outline"></ion-icon>
+                <div>
+                    <div class="text-muted">Candidate</div>
+                    <div>{{ attempt.user.get_full_name }}</div>
+                </div>
+            </div>
+            
+            <div class="info-item">
+                <ion-icon name="calendar-outline"></ion-icon>
+                <div>
+                    <div class="text-muted">Date Completed</div>
+                    <div>{{ attempt.end_time|date:"M d, Y H:i" }}</div>
+                </div>
+            </div>
+            
+            <div class="info-item">
+                <ion-icon name="time-outline"></ion-icon>
+                <div>
+                    <div class="text-muted">Duration</div>
+                    <div>{{ attempt.exam_set.duration_minutes }} minutes</div>
+                </div>
+            </div>
+            
+            <div class="info-item">
+                <ion-icon name="document-text-outline"></ion-icon>
+                <div>
+                    <div class="text-muted">Attempt Type</div>
+                    <div>
+                        {% if attempt.is_first_attempt %}
+                            <strong>First Attempt</strong>
+                        {% else %}
+                            Practice Attempt
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="question-review">
+        <h2 class="text-center mb-4">
+            <ion-icon name="document-text-outline"></ion-icon>
+            Detailed Question Review
+        </h2>
+        
+        {% for answer in answers %}
+        <div class="question-item">
+            <div class="question-header">
+                <div class="question-number">Question {{ forloop.counter }}</div>
+                <div class="question-status 
+                    {% if answer.is_correct %}status-correct{% else %}status-incorrect{% endif %}
+                    {% if not answer.is_correct and not answer.question.question_type == 'MCQ' and answer.attempt.status == 'GRADING_PENDING' %}status-pending{% endif %}">
+                    {% if answer.is_correct %}
+                        Correct
+                    {% else %}
+                        {% if answer.question.question_type == 'MCQ' %}
+                            Incorrect
+                        {% else %}
+                            {% if answer.attempt.status == 'GRADING_PENDING' %}
+                                Pending Grading
+                            {% else %}
+                                Incorrect
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="question-text">
+                {{ answer.question.text|linebreaks }}
+            </div>
+            
+            <div class="user-answer">
+                <strong>Your Answer:</strong>
+                {% if answer.question.question_type == 'MCQ' %}
+                    <p>{{ answer.mcq_answer }}</p>
+                {% else %}
+                    <p>{{ answer.text_answer|linebreaks }}</p>
+                {% endif %}
+            </div>
+            
+            {% if answer.question.question_type == 'MCQ' %}
+                <div class="correct-answer">
+                    <strong>Correct Answer:</strong>
+                    <p>{{ answer.question.correct_choice }}</p>
+                </div>
+            {% endif %}
+            
+            {% if answer.gradings.exists %}
+                <div class="feedback-box">
+                    <strong>Feedback:</strong>
+                    <p>{{ answer.gradings.first.feedback|default:"No feedback provided" }}</p>
+                </div>
+            {% endif %}
+            
+            {% for correction in corrections %}
+                {% if correction.question_id == answer.question.id %}
+                <div class="feedback-box">
+                    <strong>Explanation:</strong>
+                    <p>{{ correction.explanation }}</p>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div class="alert alert-warning text-center">
+            No answers were recorded for this attempt.
+            {% if attempt.status == 'AUTO_SUBMITTED' %}
+                This may be due to an automatic submission before any answers were saved.
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="text-center mt-4">
+        <a href="{% url 'exams:exam_set_detail' pk=attempt.exam_set.id %}" class="btn btn-outline-primary mr-3">
+            <ion-icon name="arrow-back-outline"></ion-icon> Back to Exam
+        </a>
+        <a href="{% url 'exams:exam_attempt_start' pk=attempt.exam_set.id %}" class="btn btn-primary">
+            <ion-icon name="refresh-outline"></ion-icon> Retake Exam
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Highlight unanswered questions if any
+    document.addEventListener('DOMContentLoaded', function() {
+        const unansweredCount = {{ unanswered_count|default:0 }};
+        if (unansweredCount > 0) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-warning text-center mb-4';
+            alert.innerHTML = `
+                <ion-icon name="warning-outline"></ion-icon>
+                You left ${unansweredCount} question(s) unanswered
+            `;
+            document.querySelector('.question-review').prepend(alert);
+        }
+        
+        // Special handling for auto-submitted exams
+        {% if attempt.status == 'AUTO_SUBMITTED' %}
+            const header = document.querySelector('.result-header');
+            const notice = document.createElement('div');
+            notice.className = 'alert alert-info mt-3';
+            notice.innerHTML = `
+                <ion-icon name="information-circle-outline"></ion-icon>
+                This exam was automatically submitted when time expired
+            `;
+            header.appendChild(notice);
+        {% endif %}
+    });
+</script>
+{% endblock %}

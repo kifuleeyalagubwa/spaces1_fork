@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Exam Sets - Uganda eLearning{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">
+        <ion-icon name="library-outline"></ion-icon>
+        {% if user.profile.role == 'setter' %}My Exam Sets{% else %}Available try Exams{% endif %}
+    </h2>
+    
+    <div class="mb-4 flex justify-between items-center">
+        {% if user.profile.role == 'setter' %}
+        <a href="{% url 'exams:exam_set_create' %}" class="btn btn-primary">
+            <ion-icon name="add-outline"></ion-icon> Create New Exam Set
+        </a>
+        {% endif %}
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for exam_set in exam_sets %}
+        <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-xl font-bold text-gray-900">{{ exam_set.title }}</h3>
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                        {% if exam_set.set_type == 'FREE' %}bg-green-100 text-green-800
+                        {% elif exam_set.set_type == 'PREMIUM' %}bg-blue-100 text-blue-800
+                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                        {{ exam_set.get_set_type_display }}
+                    </span>
+                </div>
+                
+                <p class="text-gray-600 mb-4">{{ exam_set.description|truncatewords:20 }}</p>
+                
+                <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                    <div>
+                        <ion-icon name="time-outline" class="mr-1"></ion-icon>
+                        {{ exam_set.duration_minutes }} min
+                    </div>
+                    <div>
+                        <ion-icon name="document-text-outline" class="mr-1"></ion-icon>
+                        {{ exam_set.questions.count }} questions
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <a href="{% url 'exams:exam_set_detail' pk=exam_set.id %}" 
+                       class="btn btn-outline text-sm py-1 px-3">
+                        View Details
+                    </a>
+                    
+                    {% if user.profile.role == 'setter' %}
+                    <a href="{% url 'exams:exam_set_update' pk=exam_set.id %}" 
+                       class="text-gray-500 hover:text-gray-700">
+                        <ion-icon name="create-outline" class="text-lg"></ion-icon>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-3 text-center py-12">
+            <ion-icon name="file-tray-outline" class="text-4xl text-gray-300 mb-3"></ion-icon>
+            <p class="text-gray-500">No exam sets available</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

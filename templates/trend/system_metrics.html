@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-graph-up"></i> System Metrics</h2>
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2 mb-3">
+            <div class="card bg-primary text-white text-center">
+                <div class="card-body">
+                    <h1 class="display-5">{{ active_systems }}</h1>
+                    <p class="card-text">Systems</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card bg-success text-white text-center">
+                <div class="card-body">
+                    <h1 class="display-5">{{ active_levels }}</h1>
+                    <p class="card-text">Levels</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card bg-info text-white text-center">
+                <div class="card-body">
+                    <h1 class="display-5">{{ active_subjects }}</h1>
+                    <p class="card-text">Subjects</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card bg-warning text-dark text-center">
+                <div class="card-body">
+                    <h1 class="display-5">{{ active_trends }}</h1>
+                    <p class="card-text">Spaces</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card bg-danger text-white text-center">
+                <div class="card-body">
+                    <h1 class="display-5">{{ recent_users }}</h1>
+                    <p class="card-text">New Users (7d)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card bg-dark text-white text-center">
+                <div class="card-body">
+                    <h1 class="display-5">{{ recent_trends }}</h1>
+                    <p class="card-text">New Spaces (7d)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- User Growth Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">User Growth (Last 30 Days)</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="userGrowthChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Role Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">User Role Distribution</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="roleDistributionChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- System Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Top Educational Systems</h4>
+                    <p class="mb-0 small">Content distribution across top systems</p>
+                </div>
+                <div class="card-body">
+                    <canvas id="systemDistributionChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Space Type Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Space Type Distribution</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendTypesChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // User Growth Chart
+    const userCtx = document.getElementById('userGrowthChart').getContext('2d');
+    new Chart(userCtx, {
+        type: 'line',
+        data: {
+            labels: {{ user_growth_dates|safe }},
+            datasets: [{
+                label: 'New Users',
+                data: {{ user_growth_counts|safe }},
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Daily User Registration'
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            }
+        }
+    });
+
+    // Role Distribution Chart
+    const roleCtx = document.getElementById('roleDistributionChart').getContext('2d');
+    new Chart(roleCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ role_labels|safe }},
+            datasets: [{
+                data: {{ role_counts|safe }},
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+
+    // System Distribution Chart
+    const systemCtx = document.getElementById('systemDistributionChart').getContext('2d');
+    new Chart(systemCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ system_names|safe }},
+            datasets: [
+                {
+                    label: 'Education Levels',
+                    data: {{ level_counts|safe }},
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                },
+                {
+                    label: 'Subjects',
+                    data: {{ subject_counts|safe }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                },
+                {
+                    label: 'Spaces',
+                    data: {{ trend_counts|safe }},
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    stacked: true,
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Trend Types Chart
+    const trendCtx = document.getElementById('trendTypesChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ trend_type_labels|safe }},
+            datasets: [{
+                data: {{ trend_type_counts|safe }},
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

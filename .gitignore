@@ -1,0 +1,33 @@
+# Django
+*.pyc
+__pycache__/
+*.sqlite3
+db.sqlite3
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Static files at build time
+/staticfiles/
+
+# Media files
+/media/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Railway
+.railway/
+railway.toml
+
+# Logs
+*.log

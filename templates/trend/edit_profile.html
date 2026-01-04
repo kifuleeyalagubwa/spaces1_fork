@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Edit Profile</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Personal Information</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.bio|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.profile_picture|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.date_of_birth|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.website|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Location Information</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.address|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.city|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.country|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Education Information</h4>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label>Education Type</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="edu_type" id="school_type" value="school" 
+                               {% if not form.program.value %}checked{% endif %}>
+                        <label class="form-check-label" for="school_type">School</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="edu_type" id="university_type" value="university"
+                               {% if form.program.value %}checked{% endif %}>
+                        <label class="form-check-label" for="university_type">University</label>
+                    </div>
+                </div>
+
+                <div id="school_fields" style="display: {% if not form.program.value %}block{% else %}none{% endif %}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.education_system|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.education_level|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+
+                <div id="university_fields" style="display: {% if form.program.value %}block{% else %}none{% endif %}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.program|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.academic_year|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if user.profile.role == 'institution' %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Institution Information</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.institution_name|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.institution_logo|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        {{ form.institution_description|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary">Save Profile</button>
+    </form>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Toggle between school/university fields
+    $('input[name="edu_type"]').change(function() {
+        if ($(this).val() === 'school') {
+            $('#school_fields').show();
+            $('#university_fields').hide();
+            $('#id_program').val('');
+            $('#id_academic_year').val('');
+        } else {
+            $('#school_fields').hide();
+            $('#university_fields').show();
+            $('#id_education_system').val('');
+            $('#id_education_level').val('');
+        }
+    });
+
+    // Load education levels when education system changes
+    $("#id_education_system").change(function() {
+        const systemId = $(this).val();
+        const url = "{% url 'ajax_load_levels' %}";
+        
+        if (systemId) {
+            $.get(url, {'system_id': systemId}, function(data) {
+                $("#id_education_level").html(data);
+            });
+        } else {
+            $("#id_education_level").html('<option value="">---------</option>');
+        }
+    });
+
+    // Load academic years when program changes
+    $("#id_program").change(function() {
+        const programId = $(this).val();
+        const url = "{% url 'ajax_load_years' %}";
+        
+        if (programId) {
+            $.get(url, {'program_id': programId}, function(data) {
+                $("#id_academic_year").html(data);
+            });
+        } else {
+            $("#id_academic_year").html('<option value="">---------</option>');
+        }
+    });
+    
+    // Initialize fields
+    {% if form.education_system.value %}
+        $("#id_education_system").trigger('change');
+    {% endif %}
+    
+    {% if form.program.value %}
+        $("#id_program").trigger('change');
+    {% endif %}
+});
+</script>
+{% endblock %}

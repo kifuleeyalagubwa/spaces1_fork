@@ -1,0 +1,240 @@
+<div class="math-panel">
+    <div class="math-toolbar">
+        <div class="toolbar-section">
+            <button data-template="frac" title="Fraction">
+                <span class="math-symbol">a/b</span>
+            </button>
+            <button data-template="exponent" title="Exponent">
+                <span class="math-symbol">x<sup>y</sup></span>
+            </button>
+            <button data-template="sqrt" title="Square Root">
+                <span class="math-symbol">√x</span>
+            </button>
+            <button data-template="root" title="Nth Root">
+                <span class="math-symbol"><sup>n</sup>√x</span>
+            </button>
+        </div>
+        
+        <div class="toolbar-section">
+            <button data-template="sum" title="Summation">
+                <span class="math-symbol">∑</span>
+            </button>
+            <button data-template="integral" title="Integral">
+                <span class="math-symbol">∫</span>
+            </button>
+            <button data-template="limit" title="Limit">
+                <span class="math-symbol">lim</span>
+            </button>
+            <button data-template="matrix" title="Matrix">
+                <span class="math-symbol">[ ]</span>
+            </button>
+        </div>
+        
+        <div class="toolbar-section">
+            <button data-template="greek" title="Greek Letters">
+                <span class="math-symbol">αβγ</span>
+            </button>
+            <button data-template="parentheses" title="Parentheses">
+                <span class="math-symbol">( )</span>
+            </button>
+            <button data-template="brackets" title="Brackets">
+                <span class="math-symbol">[ ]</span>
+            </button>
+            <button data-template="abs" title="Absolute Value">
+                <span class="math-symbol">|x|</span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="math-input-group">
+        <div class="input-container">
+            <input type="text" id="plain-math-input" class="form-control" placeholder="Type math expression: (a+b)/c^2">
+            <button id="convert-math" class="btn btn-primary">Convert</button>
+        </div>
+        <div class="preview-container">
+            <div class="preview-label">Preview:</div>
+            <div id="math-preview" class="math-preview">\( \)</div>
+        </div>
+    </div>
+    
+    <div class="math-actions">
+        <button id="insert-math" class="btn btn-outline">
+            <ion-icon name="arrow-forward-outline"></ion-icon> Insert into Content
+        </button>
+        <button id="math-help" class="btn btn-link">
+            <ion-icon name="help-circle-outline"></ion-icon> Help
+        </button>
+    </div>
+    
+    <div id="math-help-panel" class="help-panel">
+        <h5>Math Input Guide</h5>
+        <div class="help-grid">
+            <div class="help-item">
+                <div class="example">a/b</div>
+                <div class="explanation">Fraction → \(\frac{a}{b}\)</div>
+            </div>
+            <div class="help-item">
+                <div class="example">x^2</div>
+                <div class="explanation">Exponent → \(x^2\)</div>
+            </div>
+            <div class="help-item">
+                <div class="example">sqrt(x)</div>
+                <div class="explanation">Square Root → \(\sqrt{x}\)</div>
+            </div>
+            <div class="help-item">
+                <div class="example">root(3)(x)</div>
+                <div class="explanation">Cube Root → \(\sqrt[3]{x}\)</div>
+            </div>
+            <div class="help-item">
+                <div class="example">sum(n=1,5)</div>
+                <div class="explanation">Summation → \(\sum_{n=1}^{5}\)</div>
+            </div>
+            <div class="help-item">
+                <div class="example">int(a,b)</div>
+                <div class="explanation">Integral → \(\int_{a}^{b}\)</div>
+            </div>
+            <div class="help-item">
+                <div class="example">alpha, beta</div>
+                <div class="explanation">Greek Letters → α, β</div>
+            </div>
+            <div class="help-item">
+                <div class="example">(a+b)</div>
+                <div class="explanation">Grouping → \(a + b\)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mathInput = document.getElementById('plain-math-input');
+    const convertBtn = document.getElementById('convert-math');
+    const mathPreview = document.getElementById('math-preview');
+    const insertBtn = document.getElementById('insert-math');
+    const helpBtn = document.getElementById('math-help');
+    const helpPanel = document.getElementById('math-help-panel');
+    
+    // Conversion rules
+    const mathRules = {
+        // Fractions
+        '([\\w\\d]+)\\/([\\w\\d]+)': '\\frac{$1}{$2}',
+        '\\((.*?)\\)\\/(.*?)': '\\frac{$1}{$2}',
+        
+        // Exponents
+        '([\\w\\d]+)\\^([\\w\\d]+)': '$1^{$2}',
+        '([\\w\\d]+)\\^\\((.*?)\\)': '$1^{$2}',
+        
+        // Roots
+        'sqrt\\(([^)]+)\\)': '\\sqrt{$1}',
+        'root\\(([\\d]+)\\)\\(([^)]+)\\)': '\\sqrt[$1]{$2}',
+        
+        // Sums/Integrals
+        'sum\\(([^=]+)=([^,]+),([^)]+)\\)': '\\sum_{$1=$2}^{$3}',
+        'int\\(([^,]+),([^)]+)\\)': '\\int_{$1}^{$2}',
+        'lim\\(([^)]+)\\)': '\\lim_{$1}',
+        
+        // Greek letters
+        'alpha': '\\alpha',
+        'beta': '\\beta',
+        'gamma': '\\gamma',
+        'delta': '\\delta',
+        'theta': '\\theta',
+        'pi': '\\pi',
+        'sigma': '\\sigma',
+        'omega': '\\omega',
+        
+        // Functions
+        'sin\\(([^)]+)\\)': '\\sin($1)',
+        'cos\\(([^)]+)\\)': '\\cos($1)',
+        'tan\\(([^)]+)\\)': '\\tan($1)',
+        'log\\(([^)]+)\\)': '\\log($1)',
+        'ln\\(([^)]+)\\)': '\\ln($1)',
+    };
+    
+    // Template snippets
+    const templates = {
+        frac: 'a/b',
+        exponent: 'x^y',
+        sqrt: 'sqrt(x)',
+        root: 'root(3)(x)',
+        sum: 'sum(n=1,10)',
+        integral: 'int(0,∞) f(x) dx',
+        limit: 'lim(x->0)',
+        matrix: '[a,b;c,d]',
+        parentheses: '( )',
+        brackets: '[ ]',
+        abs: '|x|',
+        greek: 'alpha, beta, gamma'
+    };
+    
+    // Convert plain math to LaTeX
+    function convertToLatex(input) {
+        let latex = input;
+        
+        // Apply conversion rules
+        for (const [pattern, replacement] of Object.entries(mathRules)) {
+            const regex = new RegExp(pattern, 'g');
+            latex = latex.replace(regex, replacement);
+        }
+        
+        return latex;
+    }
+    
+    // Update preview
+    function updatePreview() {
+        const input = mathInput.value;
+        if (!input) {
+            mathPreview.textContent = '\\( \\)';
+            return;
+        }
+        
+        const latex = convertToLatex(input);
+        mathPreview.innerHTML = `\\( ${latex} \\)`;
+        MathJax.typesetPromise([mathPreview]).catch(err => console.log('MathJax error:', err));
+    }
+    
+    // Convert button handler
+    convertBtn.addEventListener('click', updatePreview);
+    
+    // Auto-convert when user stops typing
+    let typingTimer;
+    mathInput.addEventListener('input', function() {
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(updatePreview, 500);
+    });
+    
+    // Insert into content
+    insertBtn.addEventListener('click', function() {
+        const input = mathInput.value;
+        if (!input) return;
+        
+        const latex = convertToLatex(input);
+        const contentField = document.getElementById('id_content');
+        const cursorPos = contentField.selectionStart;
+        
+        contentField.value = contentField.value.substring(0, cursorPos) + 
+                             `\\( ${latex} \\)` + 
+                             contentField.value.substring(cursorPos);
+        
+        // Clear input
+        mathInput.value = '';
+        mathPreview.innerHTML = '\\( \\)';
+    });
+    
+    // Toolbar button handler
+    document.querySelectorAll('.math-toolbar button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const template = this.getAttribute('data-template');
+            if (templates[template]) {
+                mathInput.value = templates[template];
+                updatePreview();
+            }
+        });
+    });
+    
+    // Toggle help panel
+    helpBtn.addEventListener('click', function() {
+        helpPanel.style.display = helpPanel.style.display === 'block' ? 'none' : 'block';
+    });
+});
+</script>

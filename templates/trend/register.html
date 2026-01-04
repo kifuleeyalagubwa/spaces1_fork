@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white text-center">
+                    <h2><i class="bi bi-person-plus"></i> Create Your Account</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.username|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.email|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.password1|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.password2|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="terms">
+                            <label class="form-check-label" for="terms">
+                                I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-person-check"></i> Create Account
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h4 class="text-center">Why Join Classroom?</h4>
+                    <div class="row mt-4">
+                        <div class="col-md-4 text-center mb-4">
+                            <i class="bi bi-people display-4 text-primary"></i>
+                            <h5>Collaborative Learning</h5>
+                            <p>Connect with peers and educators worldwide</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-4">
+                            <i class="bi bi-journal-bookmark display-4 text-success"></i>
+                            <h5>Structured Curriculum</h5>
+                            <p>Access organized educational content</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-4">
+                            <i class="bi bi-lightbulb display-4 text-warning"></i>
+                            <h5>Skill Development</h5>
+                            <p>Build both academic and life skills</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

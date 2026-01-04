@@ -1,0 +1,140 @@
+{% extends "study/base.html" %}
+
+{% block study_title %}Explore Study Resources{% endblock %}
+
+{% block study_actions %}
+<a href="{% url 'study:resource_create' %}" class="btn btn-primary">
+    <ion-icon name="add-outline"></ion-icon> Create Resource
+</a>
+{% endblock %}
+
+{% block study_content %}
+<div class="resource-filters">
+    <div class="filter-group">
+        <label>Filter by Type:</label>
+        <div class="filter-options">
+            <button class="filter-btn active" data-type="all">All</button>
+            <button class="filter-btn" data-type="text">
+                <ion-icon name="document-text-outline"></ion-icon> Text
+            </button>
+            <button class="filter-btn" data-type="video">
+                <ion-icon name="videocam-outline"></ion-icon> Video
+            </button>
+            <button class="filter-btn" data-type="audio">
+                <ion-icon name="musical-notes-outline"></ion-icon> Audio
+            </button>
+            <button class="filter-btn" data-type="pdf">
+                <ion-icon name="document-outline"></ion-icon> PDF
+            </button>
+        </div>
+    </div>
+    
+    <div class="filter-group">
+        <label>Filter by Subject:</label>
+        <select class="form-control">
+            <option value="">All Subjects</option>
+            {% for subject in subjects %}
+            <option value="{{ subject.id }}">{{ subject.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div class="resource-grid">
+    {% for resource in resources %}
+    <div class="resource-card" data-type="{{ resource.resource_type }}">
+        <div class="resource-header">
+            <div class="resource-icon">
+                {% if resource.resource_type == 'text' %}
+                <ion-icon name="document-text-outline"></ion-icon>
+                {% elif resource.resource_type == 'video' %}
+                <ion-icon name="videocam-outline"></ion-icon>
+                {% elif resource.resource_type == 'audio' %}
+                <ion-icon name="musical-notes-outline"></ion-icon>
+                {% elif resource.resource_type == 'pdf' %}
+                <ion-icon name="document-outline"></ion-icon>
+                {% endif %}
+            </div>
+            <div class="resource-access {{ resource.access_level }}">
+                {{ resource.get_access_level_display }}
+            </div>
+        </div>
+        
+        <div class="resource-body">
+            <h3>{{ resource.title }}</h3>
+            <p class="resource-description">{{ resource.description|truncatewords:20 }}</p>
+            
+            <div class="resource-meta">
+                <span class="resource-author">
+                    <ion-icon name="person-outline"></ion-icon>
+                    {{ resource.creator.username }}
+                </span>
+                <span class="resource-date">
+                    <ion-icon name="calendar-outline"></ion-icon>
+                    {{ resource.created_at|date:"M d, Y" }}
+                </span>
+            </div>
+            
+            <div class="resource-tags">
+                {% for subject in resource.subjects.all %}
+                <span class="tag subject">{{ subject.name }}</span>
+                {% endfor %}
+                {% for topic in resource.topics.all %}
+                <span class="tag topic">{{ topic.name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="resource-footer">
+            <a href="{% url 'study:resource_detail' resource.id %}" class="btn btn-outline">
+                View Resource
+            </a>
+            {% if resource.access_level == 'premium' %}
+            <span class="resource-price">
+                <ion-icon name="pricetag-outline"></ion-icon>
+                {{ resource.access_cost }} credits
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-resources">
+        <ion-icon name="library-outline"></ion-icon>
+        <h3>No Study Resources Available</h3>
+        <p>Be the first to create a resource!</p>
+        <a href="{% url 'study:resource_create' %}" class="btn btn-primary">
+            Create Resource
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter functionality
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const resourceCards = document.querySelectorAll('.resource-card');
+    
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const type = this.getAttribute('data-type');
+            
+            // Update active button
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Filter resources
+            resourceCards.forEach(card => {
+                if (type === 'all' || card.getAttribute('data-type') === type) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
