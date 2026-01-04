@@ -1,3 +1,5 @@
+# Dockerfile - FIXED VERSION
+
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -21,8 +23,9 @@ COPY . .
 RUN useradd -m -u 1000 django && chown -R django:django /app
 USER django
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
+# TEMPORARY: Skip collectstatic during build (causes Redis error)
+# We'll run it at runtime instead
+# RUN python manage.py collectstatic --noinput
 
 # Run migrations and start server
-CMD sh -c "python manage.py migrate --noinput && gunicorn classroom.wsgi --bind 0.0.0.0:$PORT --workers 3 --timeout 120 --access-logfile -"
+CMD sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn classroom.wsgi --bind 0.0.0.0:$PORT --workers 3 --timeout 120 --access-logfile -"
