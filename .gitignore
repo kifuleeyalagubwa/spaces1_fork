@@ -3,10 +3,12 @@
 __pycache__/
 *.sqlite3
 db.sqlite3
+*.log
 
 # Environment
 .env
 .env.local
+.env.production
 .env.*.local
 
 # Static files at build time
@@ -25,9 +27,26 @@ db.sqlite3
 .DS_Store
 Thumbs.db
 
-# Railway
-.railway/
-railway.toml
+# Docker
+docker-compose.yml
+.dockerignore
 
-# Logs
-*.log
+# Koyeb
+koyeb-secrets.json
+
+# Python
+venv/
+env/
+ENV/
+venv.bak/
+env.bak/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Pytest
+.pytest_cache/
+
+# pyenv
+.python-version

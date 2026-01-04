@@ -1,0 +1,26 @@
+name: uganda-elearning
+services:
+  - name: web
+    ports:
+      - port: 8000
+        http:
+          paths:
+            - path: /
+    env:
+      - name: PORT
+        value: "8000"
+      - name: SECRET_KEY
+        value: "django-insecure-change-this-in-production"
+      - name: DEBUG
+        value: "False"
+      - name: ALLOWED_HOSTS
+        value: ".koyeb.app,.koyeb.tech,localhost,127.0.0.1"
+      - name: DISABLE_COLLECTSTATIC
+        value: "1"
+    routes:
+      - path: /
+    build:
+      dockerfile: ./Dockerfile
+    scaling:
+      min: 1
+      max: 1

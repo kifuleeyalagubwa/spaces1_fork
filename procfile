@@ -1,7 +1,0 @@
-release: python manage.py migrate --noinput
-web: python manage.py collectstatic --noinput && gunicorn classroom.wsgi --log-file - --workers 3 --timeout 120
-worker: daphne -b 0.0.0.0 -p $PORT classroom.asgi:application
-
-# Alternative (simpler):
-# web: gunicorn classroom.wsgi --log-file -
-# redis: redis-server --port $REDIS_PORT
