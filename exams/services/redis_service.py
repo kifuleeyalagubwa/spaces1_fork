@@ -1,3 +1,4 @@
+# exams/services/redis_service.py
 import redis
 import time
 import logging
@@ -10,367 +11,260 @@ logger = logging.getLogger(__name__)
 
 class RedisService:
     def __init__(self):
-        """Initialize Redis connection for Koyeb deployment."""
+        """Initialize Redis service WITHOUT connecting immediately."""
+        self._redis_client = None
+        self._redis_url = None
+        self._initialized = False
+        self._connected = False
+        logger.info("RedisService initialized (lazy loading enabled)")
+    
+    def _ensure_connection(self):
+        """Establish Redis connection only when needed (lazy loading)."""
+        if self._connected:
+            return True
+        
+        if self._initialized and not self._connected:
+            return False
+        
+        self._initialized = True
+        self._redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+        
+        # Don't try to connect during Django setup/management commands
+        import sys
+        if 'manage.py' in sys.argv[0] and 'runserver' not in ' '.join(sys.argv):
+            logger.info("Skipping Redis connection during Django management commands")
+            return False
+        
+        # Skip if using default localhost URL (means Redis not configured yet)
+        if self._redis_url == 'redis://localhost:6379':
+            if settings.DEBUG:
+                logger.warning("Using default Redis URL, Redis features will work when URL is set")
+                return False
+            else:
+                logger.error("Redis URL not configured in production!")
+                return False
+        
         try:
-            # Get Redis URL from environment (Koyeb provides REDIS_URL)
-            redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+            logger.info(f"🔌 Establishing Redis connection to: {self._redis_url}")
             
-            logger.info(f"🔌 Attempting Redis connection to: {redis_url}")
-            
-            # Parse connection parameters
             connection_params = {
                 'decode_responses': True,
-                'socket_connect_timeout': 10,
+                'socket_connect_timeout': 5,
                 'socket_keepalive': True,
                 'retry_on_timeout': True,
-                'max_connections': 20,
+                'max_connections': 10,
                 'health_check_interval': 30,
             }
             
-            # Handle SSL for Koyeb Redis
-            if redis_url.startswith('rediss://'):
-                # SSL connection for Koyeb production Redis
-                connection_params['ssl_cert_reqs'] = None  # Accept Koyeb's SSL cert
+            # Handle SSL for production Redis
+            if self._redis_url.startswith('rediss://'):
+                connection_params['ssl_cert_reqs'] = None
                 connection_params['ssl'] = True
-                logger.info("🔐 Using SSL connection for Redis")
+                logger.info("Using SSL for Redis connection")
             
-            # Create Redis connection
-            self.redis = redis.from_url(redis_url, **connection_params)
-            
-            # Test connection with retry
+            # Create connection with retry logic
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    self.redis.ping()
-                    logger.info(f"✅ Redis connected successfully on attempt {attempt + 1}")
-                    break
+                    self._redis_client = redis.from_url(self._redis_url, **connection_params)
+                    
+                    # Test connection with short timeout
+                    self._redis_client.ping()
+                    self._connected = True
+                    logger.info("✅ Redis connected successfully")
+                    
+                    # Log Redis info
+                    try:
+                        info = self._redis_client.info()
+                        logger.info(f"Redis version: {info.get('redis_version')}, "
+                                   f"Memory used: {info.get('used_memory_human')}")
+                    except:
+                        pass
+                    
+                    return True
+                    
                 except redis.ConnectionError as e:
                     if attempt < max_retries - 1:
-                        wait_time = (attempt + 1) * 2  # Exponential backoff
-                        logger.warning(f"Redis connection attempt {attempt + 1} failed, retrying in {wait_time}s: {e}")
+                        wait_time = 2 * (attempt + 1)
+                        logger.warning(f"Redis connection attempt {attempt + 1} failed, retrying in {wait_time}s: {str(e)}")
                         time.sleep(wait_time)
                     else:
-                        raise e
-            
-            # Connection successful, log info
-            redis_info = self.redis.info()
-            logger.info(f"📊 Redis info - Version: {redis_info.get('redis_version')}, "
-                       f"Memory: {redis_info.get('used_memory_human')}, "
-                       f"Connections: {redis_info.get('connected_clients')}")
-            
-        except redis.ConnectionError as e:
-            logger.error(f"❌ Redis connection failed after all retries: {str(e)}")
-            
-            # For development mode, create a mock client
-            if settings.DEBUG:
-                self.redis = None
-                logger.warning("⚠️ Using null Redis client (development mode only)")
-                logger.warning("⚠️ Real-time exam features will not work in development")
-            else:
-                # In production, we must have Redis
-                logger.critical("🚨 Redis is required for production. Application may fail.")
-                raise e
+                        logger.error(f"❌ Redis connection failed after {max_retries} retries: {str(e)}")
+                        if settings.DEBUG:
+                            logger.warning("Redis connection failed in development mode, continuing without Redis")
+                            self._redis_client = None
+                            return False
+                        else:
+                            logger.critical("Redis connection failed in production, but continuing")
+                            self._redis_client = None
+                            return False
                 
-        except redis.AuthenticationError as e:
-            logger.error(f"❌ Redis authentication failed: {str(e)}")
-            raise e
-            
         except Exception as e:
-            logger.error(f"❌ Unexpected Redis error: {str(e)}", exc_info=True)
-            raise e
-
+            logger.error(f"❌ Unexpected Redis error: {str(e)}")
+            self._redis_client = None
+            self._connected = False
+            return False
+    
+    def _safe_operation(self, operation, *args, **kwargs):
+        """Safely perform a Redis operation with automatic connection."""
+        try:
+            if not self._ensure_connection() or self._redis_client is None:
+                if settings.DEBUG:
+                    logger.debug(f"Redis not available for {operation.__name__}")
+                return None
+            
+            return operation(self._redis_client, *args, **kwargs)
+        except redis.RedisError as e:
+            logger.error(f"Redis error in {operation.__name__}: {str(e)}")
+            # Reset connection on error
+            self._redis_client = None
+            self._connected = False
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error in {operation.__name__}: {str(e)}")
+            return None
+    
     # ============================================================================
     # ATTEMPT TRACKING METHODS
     # ============================================================================
-
+    
     def cache_attempt_state(self, attempt_id, data, ttl=None):
-        """Cache exam attempt state in Redis."""
-        if not self._check_redis():
-            return False
-            
-        try:
+        def _op(client):
             key = f"{settings.REDIS_EXAM_ATTEMPTS_PREFIX}{attempt_id}"
-            result = self.redis.hset(key, mapping=data)
-            
+            result = client.hset(key, mapping=data)
             if ttl:
-                self.redis.expire(key, ttl)
-                logger.debug(f"Cached attempt {attempt_id} with TTL {ttl}s")
-            else:
-                logger.debug(f"Cached attempt {attempt_id} without TTL")
-                
-            return result > 0
-        except Exception as e:
-            logger.error(f"Error caching attempt state for {attempt_id}: {str(e)}")
-            return False
-
+                client.expire(key, ttl)
+            logger.debug(f"Cached attempt {attempt_id}, TTL: {ttl}s")
+            return result
+        return self._safe_operation(_op) or 0
+    
     def get_attempt_state(self, attempt_id):
-        """Get exam attempt state from Redis."""
-        if not self._check_redis():
-            return {}
-            
-        try:
+        def _op(client):
             key = f"{settings.REDIS_EXAM_ATTEMPTS_PREFIX}{attempt_id}"
-            data = self.redis.hgetall(key)
-            logger.debug(f"Retrieved attempt state for {attempt_id}: {len(data)} fields")
-            return data
-        except Exception as e:
-            logger.error(f"Error getting attempt state for {attempt_id}: {str(e)}")
-            return {}
-
+            return client.hgetall(key)
+        return self._safe_operation(_op) or {}
+    
     def delete_attempt_state(self, attempt_id):
-        """Delete exam attempt state from Redis."""
-        if not self._check_redis():
-            return False
-            
-        try:
+        def _op(client):
             key = f"{settings.REDIS_EXAM_ATTEMPTS_PREFIX}{attempt_id}"
-            result = self.redis.delete(key)
-            logger.debug(f"Deleted attempt state for {attempt_id}: {result} keys removed")
-            return result > 0
-        except Exception as e:
-            logger.error(f"Error deleting attempt state for {attempt_id}: {str(e)}")
-            return False
-
+            result = client.delete(key)
+            logger.debug(f"Deleted attempt {attempt_id}: {result} keys")
+            return result
+        return self._safe_operation(_op) or 0
+    
     # ============================================================================
     # GRADING QUEUE METHODS
     # ============================================================================
-
+    
     def add_to_grading_queue(self, attempt_id):
-        """Add attempt to grading queue."""
-        if not self._check_redis():
-            return False
-            
-        try:
-            result = self.redis.lpush(settings.REDIS_GRADING_QUEUE_KEY, attempt_id)
-            logger.debug(f"Added attempt {attempt_id} to grading queue, position: {result}")
-            return result > 0
-        except Exception as e:
-            logger.error(f"Error adding {attempt_id} to grading queue: {str(e)}")
-            return False
-
+        def _op(client):
+            return client.lpush(settings.REDIS_GRADING_QUEUE_KEY, attempt_id)
+        return self._safe_operation(_op) or 0
+    
     def get_next_grading_task(self):
-        """Get next task from grading queue."""
-        if not self._check_redis():
-            return None
-            
-        try:
-            task = self.redis.rpop(settings.REDIS_GRADING_QUEUE_KEY)
-            if task:
-                logger.debug(f"Retrieved grading task: {task}")
-            return task
-        except Exception as e:
-            logger.error(f"Error getting next grading task: {str(e)}")
-            return None
-
+        def _op(client):
+            return client.rpop(settings.REDIS_GRADING_QUEUE_KEY)
+        return self._safe_operation(_op)
+    
     # ============================================================================
     # AUTO-SUBMISSION METHODS
     # ============================================================================
-
+    
     def schedule_auto_submit(self, attempt_id, exam_duration_minutes):
-        """Schedule auto-submission for an exam attempt."""
-        if not self._check_redis():
-            return False
-            
-        try:
+        def _op(client):
             delay_seconds = exam_duration_minutes * 60
             score = time.time() + delay_seconds
-            result = self.redis.zadd(
-                settings.REDIS_AUTO_SUBMIT_KEY,
-                {attempt_id: score}
-            )
-            logger.debug(f"Scheduled auto-submit for {attempt_id} in {delay_seconds}s")
-            return result > 0
-        except Exception as e:
-            logger.error(f"Error scheduling auto-submit for {attempt_id}: {str(e)}")
-            return False
-
+            return client.zadd(settings.REDIS_AUTO_SUBMIT_KEY, {attempt_id: score})
+        return self._safe_operation(_op) or 0
+    
     def get_due_auto_submits(self):
-        """Get all due auto-submissions."""
-        if not self._check_redis():
-            return []
-            
-        try:
+        def _op(client):
             now = time.time()
-            due_attempts = self.redis.zrangebyscore(
-                settings.REDIS_AUTO_SUBMIT_KEY,
-                0,
-                now
-            )
-            logger.debug(f"Found {len(due_attempts)} due auto submits")
-            return due_attempts
-        except Exception as e:
-            logger.error(f"Error getting due auto submits: {str(e)}")
-            return []
-
+            return client.zrangebyscore(settings.REDIS_AUTO_SUBMIT_KEY, 0, now)
+        return self._safe_operation(_op) or []
+    
     def clear_auto_submit(self, attempt_id):
-        """Clear auto-submission schedule for attempt."""
-        if not self._check_redis():
-            return False
-            
-        try:
-            result = self.redis.zrem(settings.REDIS_AUTO_SUBMIT_KEY, attempt_id)
-            logger.debug(f"Cleared auto-submit for {attempt_id}: {result}")
-            return result > 0
-        except Exception as e:
-            logger.error(f"Error clearing auto submit for {attempt_id}: {str(e)}")
-            return False
-
+        def _op(client):
+            return client.zrem(settings.REDIS_AUTO_SUBMIT_KEY, attempt_id)
+        return self._safe_operation(_op) or 0
+    
     # ============================================================================
     # UTILITY METHODS
     # ============================================================================
-
+    
     def get_first_attempts(self):
-        """Get all first attempts from Redis."""
-        if not self._check_redis():
-            return []
-            
-        try:
+        def _op(client):
             pattern = f"{settings.REDIS_EXAM_ATTEMPTS_PREFIX}*"
-            keys = self.redis.keys(pattern)
+            keys = client.keys(pattern)
             attempts = []
-            
             for key in keys:
-                try:
-                    data = self.redis.hgetall(key)
-                    if data.get('is_first_attempt') == 'True':
-                        attempts.append({
-                            'attempt_id': key.replace(settings.REDIS_EXAM_ATTEMPTS_PREFIX, ''),
-                            'data': data
-                        })
-                except Exception as e:
-                    logger.warning(f"Error processing key {key}: {str(e)}")
-                    continue
-            
-            logger.debug(f"Found {len(attempts)} first attempts in Redis")
+                data = client.hgetall(key)
+                if data.get('is_first_attempt') == 'True':
+                    attempts.append({
+                        'attempt_id': key.replace(settings.REDIS_EXAM_ATTEMPTS_PREFIX, ''),
+                        'data': data
+                    })
             return attempts
-        except Exception as e:
-            logger.error(f"Error getting first attempts: {str(e)}")
-            return []
-
+        return self._safe_operation(_op) or []
+    
     def cleanup_old_attempts(self, max_age_hours=24):
-        """Clean up old exam attempts to free Redis memory."""
-        if not self._check_redis():
-            return 0
-            
-        try:
+        def _op(client):
             pattern = f"{settings.REDIS_EXAM_ATTEMPTS_PREFIX}*"
-            keys = self.redis.keys(pattern)
+            keys = client.keys(pattern)
             deleted_count = 0
             current_time = time.time()
             
             for key in keys:
-                try:
-                    data = self.redis.hgetall(key)
-                    if 'start_time' in data:
-                        start_time = float(data['start_time'])
-                        age_hours = (current_time - start_time) / 3600
-                        
-                        if age_hours > max_age_hours:
-                            # Also remove from auto-submit queue
-                            attempt_id = key.replace(settings.REDIS_EXAM_ATTEMPTS_PREFIX, '')
-                            self.redis.zrem(settings.REDIS_AUTO_SUBMIT_KEY, attempt_id)
-                            
-                            # Delete the attempt
-                            self.redis.delete(key)
-                            deleted_count += 1
-                            logger.debug(f"Cleaned up old attempt: {attempt_id} ({age_hours:.1f} hours old)")
-                except Exception as e:
-                    logger.warning(f"Error processing cleanup for key {key}: {str(e)}")
-                    continue
-            
-            if deleted_count > 0:
-                logger.info(f"🧹 Redis cleanup completed: deleted {deleted_count} old attempts")
-            
+                data = client.hgetall(key)
+                if 'start_time' in data:
+                    start_time = float(data['start_time'])
+                    age_hours = (current_time - start_time) / 3600
+                    if age_hours > max_age_hours:
+                        attempt_id = key.replace(settings.REDIS_EXAM_ATTEMPTS_PREFIX, '')
+                        client.zrem(settings.REDIS_AUTO_SUBMIT_KEY, attempt_id)
+                        client.delete(key)
+                        deleted_count += 1
             return deleted_count
-            
-        except Exception as e:
-            logger.error(f"Redis cleanup error: {str(e)}")
-            return 0
-
-    def get_memory_info(self):
-        """Get Redis memory usage information."""
-        if not self._check_redis():
-            return {"error": "Redis not available", "status": "disabled"}
-            
-        try:
-            info = self.redis.info('memory')
-            memory_used = info.get('used_memory', 0)
-            memory_max = info.get('maxmemory', 0)
-            
-            return {
-                'status': 'connected',
-                'used_memory': memory_used,
-                'used_memory_human': info.get('used_memory_human', '0B'),
-                'maxmemory': memory_max,
-                'maxmemory_human': info.get('maxmemory_human', '0B'),
-                'memory_usage_percent': (memory_used / max(memory_max, 1)) * 100 if memory_max > 0 else 0,
-                'keys_count': self.redis.dbsize(),
-                'connected_clients': info.get('connected_clients', 0),
-            }
-        except Exception as e:
-            logger.error(f"Error getting Redis memory info: {str(e)}")
-            return {"error": str(e), "status": "error"}
-
+        return self._safe_operation(_op) or 0
+    
     def health_check(self):
         """Check Redis health status."""
-        if not self._check_redis():
-            return {
-                'status': 'disabled' if settings.DEBUG else 'error',
-                'message': 'Redis not available' if not settings.DEBUG else 'Redis disabled in development'
-            }
-            
         try:
-            # Simple ping test
-            self.redis.ping()
-            
-            # Get basic info
-            info = self.redis.info()
-            
-            return {
-                'status': 'healthy',
-                'version': info.get('redis_version', 'unknown'),
-                'uptime_days': info.get('uptime_in_days', 0),
-                'connected_clients': info.get('connected_clients', 0),
-                'memory_used': info.get('used_memory_human', '0B'),
-                'keys_count': self.redis.dbsize(),
-            }
-        except Exception as e:
-            logger.error(f"Redis health check failed: {str(e)}")
-            return {
-                'status': 'unhealthy',
-                'error': str(e),
-                'timestamp': time.time()
-            }
-
-    # ============================================================================
-    # PRIVATE HELPER METHODS
-    # ============================================================================
-
-    def _check_redis(self):
-        """Check if Redis is available."""
-        if self.redis is None:
-            if settings.DEBUG:
-                logger.debug("Redis not available (development mode)")
-                return False
+            if self._ensure_connection() and self._redis_client:
+                info = self._redis_client.info()
+                return {
+                    'status': 'healthy',
+                    'url': self._redis_url,
+                    'version': info.get('redis_version', 'unknown'),
+                    'memory_used': info.get('used_memory_human', '0B'),
+                    'connected_clients': info.get('connected_clients', 0),
+                    'keys': self._redis_client.dbsize(),
+                }
             else:
-                logger.error("Redis not available in production!")
-                return False
-        return True
-
-    def _safe_execute(self, func, *args, **kwargs):
-        """Safely execute a Redis command with error handling."""
-        if not self._check_redis():
-            return None
-            
-        try:
-            return func(*args, **kwargs)
-        except redis.RedisError as e:
-            logger.error(f"Redis error in {func.__name__}: {str(e)}")
-            return None
+                return {
+                    'status': 'disconnected',
+                    'url': self._redis_url,
+                    'message': 'Redis not configured or connection failed'
+                }
         except Exception as e:
-            logger.error(f"Unexpected error in {func.__name__}: {str(e)}")
-            return None
+            return {
+                'status': 'error',
+                'error': str(e),
+                'url': self._redis_url
+            }
+    
+    def is_connected(self):
+        """Check if Redis is currently connected."""
+        if self._redis_client is None:
+            return False
+        try:
+            self._redis_client.ping()
+            return True
+        except:
+            self._redis_client = None
+            self._connected = False
+            return False
 
 
-# Global Redis service instance
+# Create instance - NO CONNECTION IS MADE HERE!
 redis_service = RedisService()
